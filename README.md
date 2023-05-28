@@ -12,3 +12,8 @@ make
 
 The 'arxtools_lea_switch_model' folder contains the ARXtools model for computing the probability of LEA. 'test_constr.c' is a modified version of the original 'constraints.c' to support the large word size of LEA.
 
+
+# Note 
+
+This source code depends on or-tools. You need to download or-tools under src/3rd
+
