@@ -101,7 +101,7 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
         auto isEqual = model.NewBoolVar();
 
         for (int j = 0; j < eqsSize; ++j) {
-            model.AddGreaterOrEqual(LinearExpr::BooleanScalProd({ a[i],      b[i],      output[i], a[i + 1],  b[i + 1],  output[i + 1], isEqual.Not() },
+            model.AddGreaterOrEqual(LinearExpr::WeightedSum({ a[i],      b[i],      output[i], a[i + 1],  b[i + 1],  output[i + 1], isEqual.Not() },
                                                                 { eqs[j][0], eqs[j][1], eqs[j][2], eqs[j][3], eqs[j][4], eqs[j][5],     eqs[j][6] }),
                                     eqs[j][7]);
         }
@@ -117,17 +117,17 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
 
         model.AddGreaterOrEqual(isEqual, literal1);
         model.AddGreaterOrEqual(isEqual, literal2);
-        model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literal1, literal2 }), isEqual);
+        model.AddGreaterOrEqual(LinearExpr::Sum({ literal1, literal2 }), isEqual);
 
         model.AddGreaterOrEqual(a[i], literal1);
         model.AddGreaterOrEqual(b[i], literal1);
         model.AddGreaterOrEqual(output[i], literal1);
-        model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literal1, model.TrueVar(), model.TrueVar() }), LinearExpr::BooleanSum({ a[i], b[i], output[i] }));
+        model.AddGreaterOrEqual(LinearExpr::Sum({ literal1, model.TrueVar(), model.TrueVar() }), LinearExpr::Sum({ a[i], b[i], output[i] }));
 
         model.AddGreaterOrEqual(a[i].Not(), literal2);
         model.AddGreaterOrEqual(b[i].Not(), literal2);
         model.AddGreaterOrEqual(output[i].Not(), literal2);
-        model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literal2, a[i], b[i], output[i] }), model.TrueVar());
+        model.AddGreaterOrEqual(LinearExpr::Sum({ literal2, a[i], b[i], output[i] }), model.TrueVar());
 
         std::vector<BoolVar> tmp1 = { a[i + 1], b[i + 1], output[i + 1], a[i] };
         std::vector<BoolVar> tmp2 = { a[i + 1], b[i + 1], output[i + 1], b[i] };
@@ -139,7 +139,7 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
         equals.push_back(isEqual);
     }
 
-    model.AddEquality(prob, LinearExpr::BooleanSum(equals));
+    model.AddEquality(prob, LinearExpr::Sum(equals));
     return;
 }
 
@@ -290,7 +290,7 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
         }
     for (int i = 0; i < branchSize; ++i)
         isHalf[i] = model.NewBoolVar();
-    model.AddLessOrEqual(LinearExpr::BooleanSum(isHalf), model.NewConstant(halfNum));
+    model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());
@@ -326,10 +326,10 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
                 model.AddGreaterOrEqual(dp[i][cn], literals[r]);
                 model.AddGreaterOrEqual(matrix[r * 4 + cn], literals[r]);
                 model.AddGreaterOrEqual(can0[i + 1][r], literals[r]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r], model.TrueVar(), model.TrueVar() }), LinearExpr::BooleanSum({ dp[i][cn], matrix[r * 4 + cn], can0[i + 1][r] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r], model.TrueVar(), model.TrueVar() }), LinearExpr::Sum({ dp[i][cn], matrix[r * 4 + cn], can0[i + 1][r] }));
                 // milp
             }
-            model.AddLessOrEqual(LinearExpr::BooleanSum(literals), halfSize);
+            model.AddLessOrEqual(LinearExpr::Sum(literals), halfSize);
         }
         model.AddBoolOr({ dp[i + 1][0], dp[i + 1][1], dp[i + 1][2], dp[i + 1][3] });
 
@@ -354,9 +354,9 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
             // milp
             model.AddGreaterOrEqual(isHalf[i],  ifEnforced[j]);
             model.AddGreaterOrEqual(can0[i][j], ifEnforced[j]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], model.TrueVar() }), LinearExpr::BooleanSum({ isHalf[i], can0[i][j] }));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], model.TrueVar() }), LinearExpr::Sum({ isHalf[i], can0[i][j] }));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
             // milp
         }
         /*
@@ -379,7 +379,7 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
                 // milp
                 model.AddGreaterOrEqual(matrix[r * 4 + c],  literals[r * 4 + c]);
                 model.AddGreaterOrEqual(dp[i][c],           literals[r * 4 + c]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::BooleanSum({ matrix[r * 4 + c], dp[i][c] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 4 + c], dp[i][c] }));
                 // milp
             }
             model.AddBoolOr({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }).OnlyEnforceIf(dp[i + 1][r]);
@@ -387,7 +387,7 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
             // milp
             for (int li = 0; li < 4; ++li)
                 model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 4 + li]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
             // milp
         }
     }
@@ -550,7 +550,7 @@ static void onlyLargeSwitch_UBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
         }
     for (int i = 0; i < branchSize; ++i)
         isHalf[i] = model.NewBoolVar();
-    model.AddLessOrEqual(LinearExpr::BooleanSum(isHalf), model.NewConstant(halfNum));
+    model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());
@@ -587,10 +587,10 @@ static void onlyLargeSwitch_UBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
                 model.AddGreaterOrEqual(dp[i][cn], literals[r]);
                 model.AddGreaterOrEqual(matrix[r * 4 + cn], literals[r]);
                 model.AddGreaterOrEqual(can0[i + 1][r], literals[r]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r], model.TrueVar(), model.TrueVar() }), LinearExpr::BooleanSum({ dp[i][cn], matrix[r * 4 + cn], can0[i + 1][r] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r], model.TrueVar(), model.TrueVar() }), LinearExpr::Sum({ dp[i][cn], matrix[r * 4 + cn], can0[i + 1][r] }));
                 // milp
             }
-            model.AddLessOrEqual(LinearExpr::BooleanSum(literals), halfSize);
+            model.AddLessOrEqual(LinearExpr::Sum(literals), halfSize);
         }
         model.AddBoolOr({ dp[i + 1][0], dp[i + 1][1], dp[i + 1][2], dp[i + 1][3] });
 
@@ -615,9 +615,9 @@ static void onlyLargeSwitch_UBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
             // milp
             model.AddGreaterOrEqual(isHalf[i],  ifEnforced[j]);
             model.AddGreaterOrEqual(can0[i][j], ifEnforced[j]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], model.TrueVar() }), LinearExpr::BooleanSum({ isHalf[i], can0[i][j] }));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], model.TrueVar() }), LinearExpr::Sum({ isHalf[i], can0[i][j] }));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
             // milp
         }
 
@@ -629,7 +629,7 @@ static void onlyLargeSwitch_UBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
                 // milp
                 model.AddGreaterOrEqual(matrix[r * 4 + c],  literals[r * 4 + c]);
                 model.AddGreaterOrEqual(dp[i][c],           literals[r * 4 + c]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::BooleanSum({ matrix[r * 4 + c], dp[i][c] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 4 + c], dp[i][c] }));
                 // milp
             }
             model.AddBoolOr({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }).OnlyEnforceIf(dp[i + 1][r]);
@@ -637,7 +637,7 @@ static void onlyLargeSwitch_UBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
             // milp
             for (int li = 0; li < 4; ++li)
                 model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 4 + li]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
             // milp
         }
     }
@@ -949,7 +949,7 @@ static void onlyLargeSwitch_LBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
     for (int i = 0; i < branchSize; ++i) {
         isHalf[i] = model.NewBoolVar();
     }
-    model.AddLessOrEqual(LinearExpr::BooleanSum(isHalf), model.NewConstant(halfNum));
+    model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());
@@ -1000,10 +1000,10 @@ static void onlyLargeSwitch_LBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
                 model.AddGreaterOrEqual(dp[i][cn], literals[r]);
                 model.AddGreaterOrEqual(matrix[r * 8 + cn], literals[r]);
                 model.AddGreaterOrEqual(can0[i + 1][r], literals[r]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r], model.TrueVar(), model.TrueVar() }), LinearExpr::BooleanSum({ dp[i][cn], matrix[r * 8 + cn], can0[i + 1][r] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r], model.TrueVar(), model.TrueVar() }), LinearExpr::Sum({ dp[i][cn], matrix[r * 8 + cn], can0[i + 1][r] }));
                 // milp
             }
-            model.AddLessOrEqual(LinearExpr::BooleanSum(literals), LinearExpr::BooleanSum({ halfSize0, halfSize1 }));
+            model.AddLessOrEqual(LinearExpr::Sum(literals), LinearExpr::Sum({ halfSize0, halfSize1 }));
         }
         model.AddBoolOr({ dp[i + 1][0], dp[i + 1][1], dp[i + 1][2], dp[i + 1][3], dp[i + 1][4], dp[i + 1][5], dp[i + 1][6], dp[i + 1][7] });
 
@@ -1028,9 +1028,9 @@ static void onlyLargeSwitch_LBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
             // milp
             model.AddGreaterOrEqual(isHalf[i],  ifEnforced[j]);
             model.AddGreaterOrEqual(can0[i][j], ifEnforced[j]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], model.TrueVar() }), LinearExpr::BooleanSum({ isHalf[i], can0[i][j] }));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], Not(dp[i][j]), matrix[j * 8 + j] }), model.NewConstant(1));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ ifEnforced[j], Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], model.TrueVar() }), LinearExpr::Sum({ isHalf[i], can0[i][j] }));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], Not(dp[i][j]), matrix[j * 8 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ ifEnforced[j], Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
             // milp
         }
         /*
@@ -1053,7 +1053,7 @@ static void onlyLargeSwitch_LBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
                 // milp
                 model.AddGreaterOrEqual(matrix[r * 8 + c],  literals[r * 8 + c]);
                 model.AddGreaterOrEqual(dp[i][c],           literals[r * 8 + c]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 8 + c], model.TrueVar() }), LinearExpr::BooleanSum({ matrix[r * 8 + c], dp[i][c] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 8 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 8 + c], dp[i][c] }));
                 // milp
             }
             model.AddBoolOr({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
@@ -1065,7 +1065,7 @@ static void onlyLargeSwitch_LBCT(CpModelBuilder &model, BoolVec &dL, BoolVec &dR
             // milp
             for (int li = 0; li < 8; ++li)
                 model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 8 + li]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
                                                              literals[r * 8 + 4], literals[r * 8 + 5], literals[r * 8 + 6], literals[r * 8 + 7],
                                                            }), dp[i + 1][r]);
             // milp
@@ -1387,7 +1387,7 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     //for (int i = 0; i < branchSize; ++i) {
     //    isHalf[i] = model.NewBoolVar();
     //}
-    model.AddLessOrEqual(LinearExpr::BooleanSum(isHalf), model.NewConstant(halfNum));
+    model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());
@@ -1441,8 +1441,8 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             //model.AddBoolOr({ ifEnforced[j], Not(dp[i][j]), Not(matrix[j * 8 + j]) });
 
             // milp
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 8 + j] }), model.NewConstant(1));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 8 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
             // milp
         }
 
@@ -1465,7 +1465,7 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
                 // milp
                 model.AddGreaterOrEqual(matrix[r * 8 + c],  literals[r * 8 + c]);
                 model.AddGreaterOrEqual(dp[i][c],           literals[r * 8 + c]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 8 + c], model.TrueVar() }), LinearExpr::BooleanSum({ matrix[r * 8 + c], dp[i][c] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 8 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 8 + c], dp[i][c] }));
                 // milp
             }
             model.AddBoolOr({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
@@ -1477,7 +1477,7 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             // milp
             for (int li = 0; li < 8; ++li)
                 model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 8 + li]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
                                                              literals[r * 8 + 4], literals[r * 8 + 5], literals[r * 8 + 6], literals[r * 8 + 7],
                                                            }), dp[i + 1][r]);
             // milp
@@ -1654,7 +1654,7 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
         for (int j = 0; j < 4; ++j) {
             dp[i][j] = model.NewBoolVar();
         }
-    model.AddLessOrEqual(LinearExpr::BooleanSum(isHalf), model.NewConstant(halfNum));
+    model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());
@@ -1696,8 +1696,8 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] });
 
             // milp
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
             // milp
         }
 
@@ -1716,7 +1716,7 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
                 // milp
                 model.AddGreaterOrEqual(matrix[r * 4 + c],  literals[r * 4 + c]);
                 model.AddGreaterOrEqual(dp[i][c],           literals[r * 4 + c]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::BooleanSum({ matrix[r * 4 + c], dp[i][c] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 4 + c], dp[i][c] }));
                 // milp
             }
             model.AddBoolOr({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }).OnlyEnforceIf(dp[i + 1][r]);
@@ -1724,7 +1724,7 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             // milp
             for (int li = 0; li < 4; ++li)
                 model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 4 + li]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
             // milp
         }
     }
@@ -2339,7 +2339,7 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             dp[i][j] = model.NewBoolVar();
         }
 
-    model.AddLessOrEqual(LinearExpr::BooleanSum(isHalf), model.NewConstant(halfNum));
+    model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());
@@ -2394,8 +2394,8 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             //model.AddBoolOr({ ifEnforced[j], Not(dp[i][j]), Not(matrix[j * 8 + j]) });
 
             // milp
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 8 + j] }), model.NewConstant(1));
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 8 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
             // milp
         }
 
@@ -2418,7 +2418,7 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
                 // milp
                 model.AddGreaterOrEqual(matrix[r * 8 + c],  literals[r * 8 + c]);
                 model.AddGreaterOrEqual(dp[i][c],           literals[r * 8 + c]);
-                model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 8 + c], model.TrueVar() }), LinearExpr::BooleanSum({ matrix[r * 8 + c], dp[i][c] }));
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 8 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 8 + c], dp[i][c] }));
                 // milp
             }
             model.AddBoolOr({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
@@ -2430,7 +2430,7 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
             // milp
             for (int li = 0; li < 8; ++li)
                 model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 8 + li]);
-            model.AddGreaterOrEqual(LinearExpr::BooleanSum({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 8 + 0], literals[r * 8 + 1], literals[r * 8 + 2], literals[r * 8 + 3],
                                                              literals[r * 8 + 4], literals[r * 8 + 5], literals[r * 8 + 6], literals[r * 8 + 7],
                                                            }), dp[i + 1][r]);
             // milp

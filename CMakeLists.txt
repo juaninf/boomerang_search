@@ -16,5 +16,5 @@ endif()
 add_subdirectory(src)
 
 add_executable(testrun test.cpp)
-target_link_libraries(testrun)
+target_link_libraries(testrun absl::numeric)
 
