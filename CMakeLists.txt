@@ -15,5 +15,5 @@ endif()
 
 add_subdirectory(src)
 
-add_executable(testrun test.cpp)
+add_executable(testrun test.cpp src/window_size_util.h)
 target_link_libraries(testrun absl::numeric)
