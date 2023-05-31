@@ -60,7 +60,7 @@ static void printm(const std::vector<int> &state)
 }
 
 template<int branchSize>
-static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, BoolVec &output, IntVar &prob)
+static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, BoolVec &output, IntVar &prob, int window_size)
 {
     const std::vector<std::array<int, 8>> eqs{
         {  0,  1, -1,  0,  0,  0,  1,  0 },
@@ -140,7 +140,6 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
         equals.push_back(isEqual);
     }
 
-    int window_size = 3;
     for (int i=0; i < branchSize - window_size; i++) {
         auto n_window_vars = NewBoolVec(model, ((window_size + 1) * 3));
         for (int j=0; j < window_size + 1; j++) {
@@ -148,7 +147,23 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
             n_window_vars[3 * j + 1] = b[branchSize - 1 - (i + j)];
             n_window_vars[3 * j + 2] = output[branchSize - 1 - (i + j)];
         }
-        adding_window_size_3_cnf(model, n_window_vars);
+        switch(window_size) {
+            case 0:
+                window_size_0_cnf(model, n_window_vars);
+                break;
+            case 1:
+                window_size_1_cnf(model, n_window_vars);
+                break;
+            case 2:
+                window_size_2_cnf(model, n_window_vars);
+                break;
+            case 3:
+                window_size_3_cnf(model, n_window_vars);
+                break;
+            default:
+                printf("Window Size not Implemented yet \n");
+                exit(-1);
+        }
     }
 
     model.AddEquality(prob, LinearExpr::Sum(equals));
@@ -2472,7 +2487,7 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
 }
 
 template<int branchSize>
-static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::array<BoolVec, 2> &output, IntVar &prob)
+static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::array<BoolVec, 2> &output, IntVar &prob, int window_size)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2482,7 +2497,7 @@ static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::
     auto afterAddition = NewBoolVec(model, branchSize);
 
     BVRor(model, afterAlpha, state[0], alpha);
-    addAddition_SAT_MILP<branchSize>(model, afterAlpha, state[1], afterAddition, prob);
+    addAddition_SAT_MILP<branchSize>(model, afterAlpha, state[1], afterAddition, prob, window_size);
 
     BVRol(model, afterBeta, state[1], beta);
     BVXor(model, afterAddition, afterBeta, output[1]);
@@ -2622,7 +2637,7 @@ static void addSwitchM(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std
 }
 
 template<int branchSize>
-void search(const int preRound, const int postRound, const int mNum, const int halfNum)
+void search(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size)
 {
     constexpr int blockSize = 2 * branchSize;
 
@@ -2643,8 +2658,8 @@ void search(const int preRound, const int postRound, const int mNum, const int h
         for (int j = 0; j < branchSize; ++j)
             inputBits.push_back(inputDiff[i][j]);
     cp_model.AddBoolOr(inputBits);
-    cp_model.AddEquality(inputDiff[1][11], 1);
-    cp_model.AddEquality(LinearExpr::Sum(inputDiff[1]), 1);
+    //cp_model.AddEquality(inputDiff[1][11], 1);
+    //cp_model.AddEquality(LinearExpr::Sum(inputDiff[1]), 1);
     for (int i = 1; i <= preRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
         allState.push_back(state);
@@ -2652,7 +2667,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
         auto prob = cp_model.NewIntVar(Domain(0, branchSize - 1));
         probs.push_back(prob);
 
-        addRound<branchSize>(cp_model, allState[i - 1], state, prob);
+        addRound<branchSize>(cp_model, allState[i - 1], state, prob, window_size);
         cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 10));
 
 
@@ -2681,7 +2696,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
         auto prob = cp_model.NewIntVar(Domain(0, branchSize - 1));
         probs.push_back(prob);
 
-        addRound<branchSize>(cp_model, allState[preRound + 1 + i - 1], state, prob);
+        addRound<branchSize>(cp_model, allState[preRound + 1 + i - 1], state, prob, window_size);
         cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 10));
 
         if (i == 3) {
@@ -2864,7 +2879,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
 }
 
 template<int branchSize>
-static int searchT(const int preRound, const int postRound, const int mNum, const int halfNum, const int first0, const int second0)
+static int searchT(const int preRound, const int postRound, const int mNum, const int halfNum, const int first0, const int second0, int window_size)
 {
     constexpr int blockSize = 2 * branchSize;
 
@@ -2893,7 +2908,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
         auto prob = cp_model.NewIntVar(Domain(0, branchSize - 1));
         probs.push_back(prob);
 
-        addRound<branchSize>(cp_model, allState[i - 1], state, prob);
+        addRound<branchSize>(cp_model, allState[i - 1], state, prob, window_size);
         cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 15));
 
         if (i == first0) {
@@ -2921,7 +2936,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
         auto prob = cp_model.NewIntVar(Domain(0, branchSize - 1));
         probs.push_back(prob);
 
-        addRound<branchSize>(cp_model, allState[preRound + 1 + i - 1], state, prob);
+        addRound<branchSize>(cp_model, allState[preRound + 1 + i - 1], state, prob, window_size);
         cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 15));
 
         if (i == second0) {
@@ -3087,6 +3102,6 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
 
 int main()
 {
-    search<32 / 2>(4, 4, 0, 16);
+    search<48 / 2>(5, 5, 0, 24, 0);
     return 0;
 }
