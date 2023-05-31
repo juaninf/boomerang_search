@@ -5,6 +5,7 @@
 #include "ortools/sat/cp_model.h"
 
 
+
 void window_size_0_cnf(sat::CpModelBuilder &model, BoolVec &x) {
     model.AddBoolOr({x[0], x[1], Not(x[2])});
     model.AddBoolOr({x[0], x[2], Not(x[1])});
@@ -601,3 +602,30 @@ void window_size_3_cnf(sat::CpModelBuilder &model, BoolVec &x) {
              Not(x[7]), Not(x[8]), Not(x[9])});
 }
 
+void add_window_size(sat::CpModelBuilder &model, int window_size, int branchSize, BoolVec &a, BoolVec &b, BoolVec &output) {
+    for (int i=0; i < branchSize - window_size; i++) {
+        auto n_window_vars = NewBoolVec(model, ((window_size + 1) * 3));
+        for (int j=0; j < window_size + 1; j++) {
+            n_window_vars[3 * j + 0] = a[branchSize - 1 - (i + j)];
+            n_window_vars[3 * j + 1] = b[branchSize - 1 - (i + j)];
+            n_window_vars[3 * j + 2] = output[branchSize - 1 - (i + j)];
+        }
+        switch(window_size) {
+            case 0:
+                window_size_0_cnf(model, n_window_vars);
+                break;
+            case 1:
+                window_size_1_cnf(model, n_window_vars);
+                break;
+            case 2:
+                window_size_2_cnf(model, n_window_vars);
+                break;
+            case 3:
+                window_size_3_cnf(model, n_window_vars);
+                break;
+            default:
+                printf("Window Size not Implemented yet \n");
+                exit(-1);
+        }
+    }
+}

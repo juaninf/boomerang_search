@@ -140,31 +140,8 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
         equals.push_back(isEqual);
     }
 
-    for (int i=0; i < branchSize - window_size; i++) {
-        auto n_window_vars = NewBoolVec(model, ((window_size + 1) * 3));
-        for (int j=0; j < window_size + 1; j++) {
-            n_window_vars[3 * j + 0] = a[branchSize - 1 - (i + j)];
-            n_window_vars[3 * j + 1] = b[branchSize - 1 - (i + j)];
-            n_window_vars[3 * j + 2] = output[branchSize - 1 - (i + j)];
-        }
-        switch(window_size) {
-            case 0:
-                window_size_0_cnf(model, n_window_vars);
-                break;
-            case 1:
-                window_size_1_cnf(model, n_window_vars);
-                break;
-            case 2:
-                window_size_2_cnf(model, n_window_vars);
-                break;
-            case 3:
-                window_size_3_cnf(model, n_window_vars);
-                break;
-            default:
-                printf("Window Size not Implemented yet \n");
-                exit(-1);
-        }
-    }
+    if (window_size != -1)
+        add_window_size(model, window_size, branchSize, a, b, output);
 
     model.AddEquality(prob, LinearExpr::Sum(equals));
     return;
@@ -3102,6 +3079,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
 
 int main()
 {
-    search<48 / 2>(5, 5, 0, 24, 0);
+    search<32 / 2>(5, 5, 0, 16, 0);
+    // search<48 / 2>(5, 5, 0, 24, 0);
     return 0;
 }

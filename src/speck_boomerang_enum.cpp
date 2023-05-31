@@ -2863,8 +2863,8 @@ void searchM(const int preRound, const int postRound, const int mNum, const int 
     // switch 2
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& r) {
         num_solutions++;
-        cout << "-----------------------------" << endl
-             << "num_solutions = " << num_solutions << endl;
+        //cout << "-----------------------------" << endl
+        //     << "num_solutionss = " << num_solutions << endl;
 
         const auto prob = SolutionIntegerValue(r, totalProb);
         const int realProb = (branchSize - 1) * (preRound + postRound) - prob;
@@ -2875,15 +2875,15 @@ void searchM(const int preRound, const int postRound, const int mNum, const int 
         // ubct in the head
         for (int i = 0; i < 5; ++i) {
             dnlr[i] = 0;
-            //cout << "0b";
+            cout << "0b";
             for (int j = 0; j < branchSize; ++j) {
                 const unsigned int bit = SolutionIntegerValue(r, intermediate[i][branchSize - 1 - j]);
-                //cout << bit;
+                cout << bit;
                 dnlr[i] = (dnlr[i] << 1) + (bit&1);
             }
-            //cout << " | ";
+            cout << " | ";
         }
-        //cout << endl;
+        cout << endl;
         if constexpr (branchSize < 64 / 2) {
             const uint64_t pt = (uint64_t)(1) << (2 * branchSize);
             const auto ubct_cnt = ubct_entry(
@@ -2960,8 +2960,8 @@ void searchM(const int preRound, const int postRound, const int mNum, const int 
         probCnt[realProb - probBest] += mProb;
 
         //cout << realProb << endl;
-        for (auto v : probCnt)
-            cout << v << " ";
+        //for (auto v : probCnt)
+        //    cout << v << " ";
         cout << endl;
     }));
     model.Add(NewSatParameters(parameters));
@@ -2980,7 +2980,7 @@ void searchM(const int preRound, const int postRound, const int mNum, const int 
         const uint64_t pt = (uint64_t)(1) << (2 * i);
         probSum += probCnt[i] * 1.0 / pt;
     }
-    cout << "2^{-" << probBest * 2 - log2(probSum) << "}" << endl;
+    cout << "2^{-" << probBest * 2 - log2(probSum) << "}" << endl << "log2(probSum)" << log2(probSum) << endl << "probBest" << probBest << endl;
 
     return;
 }
@@ -3128,11 +3128,11 @@ int main()
 {
     //searchM_no_fix<32 / 2, 1>(4, 4, 0, 8, 10);
 
-    //searchM<32 / 2, 8>(4, 4, 0, 32,
-    //    { 0b0010100000000000, 0b0000000000010000 },
-    //    { 0b1000000100000010, 0b1000000100001000 },
-    //    10
-    //); // 29.1564 (the probability increased because of the increment of the precision)
+    searchM<32 / 2, 8>(4, 4, 0, 32,
+        { 0b0010100000000000, 0b0000000000010000 },
+        { 0b1000000100000010, 0b1000000100001000 },
+        10
+    ); // 29.1564 (the probability increased because of the increment of the precision)
 
     //searchM_no_fix<48 / 2, 1>(5, 5, 0, 12, 20);
 
