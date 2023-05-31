@@ -4,7 +4,103 @@
 
 #include "ortools/sat/cp_model.h"
 
-void adding_window_size_3_cnf(sat::CpModelBuilder &model, BoolVec &x) {
+
+void window_size_0_cnf(sat::CpModelBuilder &model, BoolVec &x) {
+    model.AddBoolOr({x[0], x[1], Not(x[2])});
+    model.AddBoolOr({x[0], x[2], Not(x[1])});
+    model.AddBoolOr({x[1], x[2], Not(x[0])});
+    model.AddBoolOr({Not(x[0]), Not(x[1]), Not(x[2])});
+}
+
+void window_size_1_cnf(sat::CpModelBuilder &model, BoolVec &x) {
+    model.AddBoolOr({x[0], x[1], x[3], x[4], Not(x[2]), Not(x[5])});
+    model.AddBoolOr({x[0], x[1], x[3], x[5], Not(x[2]), Not(x[4])});
+    model.AddBoolOr({x[0], x[1], x[4], x[5], Not(x[2]), Not(x[3])});
+    model.AddBoolOr({x[0], x[2], x[3], x[4], Not(x[1]), Not(x[5])});
+    model.AddBoolOr({x[0], x[2], x[3], x[5], Not(x[1]), Not(x[4])});
+    model.AddBoolOr({x[0], x[2], x[4], x[5], Not(x[1]), Not(x[3])});
+    model.AddBoolOr({x[1], x[2], x[3], x[4], Not(x[0]), Not(x[5])});
+    model.AddBoolOr({x[1], x[2], x[3], x[5], Not(x[0]), Not(x[4])});
+    model.AddBoolOr({x[1], x[2], x[4], x[5], Not(x[0]), Not(x[3])});
+    model.AddBoolOr({x[0], x[1], Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5])});
+    model.AddBoolOr({x[0], x[2], Not(x[1]), Not(x[3]), Not(x[4]), Not(x[5])});
+    model.AddBoolOr({x[1], x[2], Not(x[0]), Not(x[3]), Not(x[4]), Not(x[5])});
+    model.AddBoolOr({x[3], x[4], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[5])});
+    model.AddBoolOr({x[3], x[5], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[4])});
+    model.AddBoolOr({x[4], x[5], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3])});
+    model.AddBoolOr({Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5])});
+}
+
+
+void window_size_2_cnf(sat::CpModelBuilder &model, BoolVec &x) {
+    model.AddBoolOr({x[0], x[1], x[3], x[4], x[6], x[7], Not(x[2]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[3], x[4], x[6], x[8], Not(x[2]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[0], x[1], x[3], x[4], x[7], x[8], Not(x[2]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[0], x[1], x[3], x[5], x[6], x[7], Not(x[2]), Not(x[4]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[3], x[5], x[6], x[8], Not(x[2]), Not(x[4]), Not(x[7])});
+    model.AddBoolOr({x[0], x[1], x[3], x[5], x[7], x[8], Not(x[2]), Not(x[4]), Not(x[6])});
+    model.AddBoolOr({x[0], x[1], x[4], x[5], x[6], x[7], Not(x[2]), Not(x[3]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[4], x[5], x[6], x[8], Not(x[2]), Not(x[3]), Not(x[7])});
+    model.AddBoolOr({x[0], x[1], x[4], x[5], x[7], x[8], Not(x[2]), Not(x[3]), Not(x[6])});
+    model.AddBoolOr({x[0], x[2], x[3], x[4], x[6], x[7], Not(x[1]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[3], x[4], x[6], x[8], Not(x[1]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[0], x[2], x[3], x[4], x[7], x[8], Not(x[1]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[0], x[2], x[3], x[5], x[6], x[7], Not(x[1]), Not(x[4]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[3], x[5], x[6], x[8], Not(x[1]), Not(x[4]), Not(x[7])});
+    model.AddBoolOr({x[0], x[2], x[3], x[5], x[7], x[8], Not(x[1]), Not(x[4]), Not(x[6])});
+    model.AddBoolOr({x[0], x[2], x[4], x[5], x[6], x[7], Not(x[1]), Not(x[3]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[4], x[5], x[6], x[8], Not(x[1]), Not(x[3]), Not(x[7])});
+    model.AddBoolOr({x[0], x[2], x[4], x[5], x[7], x[8], Not(x[1]), Not(x[3]), Not(x[6])});
+    model.AddBoolOr({x[1], x[2], x[3], x[4], x[6], x[7], Not(x[0]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[3], x[4], x[6], x[8], Not(x[0]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[1], x[2], x[3], x[4], x[7], x[8], Not(x[0]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[1], x[2], x[3], x[5], x[6], x[7], Not(x[0]), Not(x[4]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[3], x[5], x[6], x[8], Not(x[0]), Not(x[4]), Not(x[7])});
+    model.AddBoolOr({x[1], x[2], x[3], x[5], x[7], x[8], Not(x[0]), Not(x[4]), Not(x[6])});
+    model.AddBoolOr({x[1], x[2], x[4], x[5], x[6], x[7], Not(x[0]), Not(x[3]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[4], x[5], x[6], x[8], Not(x[0]), Not(x[3]), Not(x[7])});
+    model.AddBoolOr({x[1], x[2], x[4], x[5], x[7], x[8], Not(x[0]), Not(x[3]), Not(x[6])});
+    model.AddBoolOr({x[0], x[1], x[3], x[4], Not(x[2]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[3], x[5], Not(x[2]), Not(x[4]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[4], x[5], Not(x[2]), Not(x[3]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[6], x[7], Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[0], x[1], x[6], x[8], Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[0], x[1], x[7], x[8], Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[0], x[2], x[3], x[4], Not(x[1]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[3], x[5], Not(x[1]), Not(x[4]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[4], x[5], Not(x[1]), Not(x[3]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[6], x[7], Not(x[1]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], x[6], x[8], Not(x[1]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[0], x[2], x[7], x[8], Not(x[1]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[1], x[2], x[3], x[4], Not(x[0]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[3], x[5], Not(x[0]), Not(x[4]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[4], x[5], Not(x[0]), Not(x[3]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[6], x[7], Not(x[0]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], x[6], x[8], Not(x[0]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[1], x[2], x[7], x[8], Not(x[0]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[3], x[4], x[6], x[7], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[3], x[4], x[6], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[3], x[4], x[7], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[3], x[5], x[6], x[7], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[4]), Not(x[8])});
+    model.AddBoolOr({x[3], x[5], x[6], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[4]), Not(x[7])});
+    model.AddBoolOr({x[3], x[5], x[7], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[4]), Not(x[6])});
+    model.AddBoolOr({x[4], x[5], x[6], x[7], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[8])});
+    model.AddBoolOr({x[4], x[5], x[6], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[7])});
+    model.AddBoolOr({x[4], x[5], x[7], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[6])});
+    model.AddBoolOr({x[0], x[1], Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[0], x[2], Not(x[1]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[1], x[2], Not(x[0]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[3], x[4], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[3], x[5], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[4]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[4], x[5], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[6]), Not(x[7]), Not(x[8])});
+    model.AddBoolOr({x[6], x[7], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[8])});
+    model.AddBoolOr({x[6], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[7])});
+    model.AddBoolOr({x[7], x[8], Not(x[0]), Not(x[1]), Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6])});
+    model.AddBoolOr({x[0], Not(x[1]), Not(x[2]), Not(x[3]), Not(x[4]), Not(x[5]), Not(x[6]), Not(x[7]), Not(x[8])});
+}
+
+
+void window_size_3_cnf(sat::CpModelBuilder &model, BoolVec &x) {
     model.AddBoolOr({x[0], x[1], x[10], x[11], x[3], x[4], x[6], x[7], Not(x[2]), Not(x[5]), Not(x[8]), Not(x[9])});
     model.AddBoolOr({x[0], x[1], x[10], x[11], x[3], x[4], x[6], x[8], Not(x[2]), Not(x[5]), Not(x[7]), Not(x[9])});
     model.AddBoolOr({x[0], x[1], x[10], x[11], x[3], x[4], x[7], x[8], Not(x[2]), Not(x[5]), Not(x[6]), Not(x[9])});
