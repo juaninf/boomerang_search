@@ -2880,7 +2880,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
             //cout << (branchSize - 1) - SolutionIntegerValue(response, prob). << endl;
             probabilities.push_back((branchSize - 1) - SolutionIntegerValue(response, prob));
         }
-        log_string["probs"] = probabilities;
+        log_string["probabilities"] = probabilities;
 
 
         //cout << endl;
