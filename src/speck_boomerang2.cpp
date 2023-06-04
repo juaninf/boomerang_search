@@ -3161,9 +3161,10 @@ void running_time_single_key_scenario(){
             {1, 2, 3, 4, 5, 6, 7, 8, 9, 0},
             {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     };
-
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 10; j++) {
+    int number_of_speck_versions = 5;
+    int max_number_of_rounds = 10;
+    for (int i = 0; i < number_of_speck_versions; i++) {
+        for (int j = 0; j < max_number_of_rounds; j++) {
             for (int window_size = -1; window_size < 4; window_size++) {
                 if (number_rounds_per_speck_version[i][j] != 0) {
                     int block_size = speck_versions[i];
