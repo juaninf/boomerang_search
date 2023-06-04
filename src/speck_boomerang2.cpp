@@ -10,6 +10,9 @@ using json = nlohmann::json;
 #include <array>
 #include <tuple>
 #include <algorithm>
+#include<fstream>
+#include <sstream>
+#include <random>
 
 
 using std::cout;
@@ -27,6 +30,55 @@ constexpr int getAlpha() { return branchSize == 16 ? 7 : 8; }
 template<int branchSize>
 constexpr int getBeta() { return branchSize == 16 ? 2 : 3; }
 
+
+
+namespace uuid {
+    static std::random_device              rd;
+    static std::mt19937                    gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+
+    std::string generate_uuid_v4() {
+        std::stringstream ss;
+        int i;
+        ss << std::hex;
+        for (i = 0; i < 8; i++) {
+            ss << dis(gen);
+        }
+        ss << "-";
+        for (i = 0; i < 4; i++) {
+            ss << dis(gen);
+        }
+        ss << "-4";
+        for (i = 0; i < 3; i++) {
+            ss << dis(gen);
+        }
+        ss << "-";
+        ss << dis2(gen);
+        for (i = 0; i < 3; i++) {
+            ss << dis(gen);
+        }
+        ss << "-";
+        for (i = 0; i < 12; i++) {
+            ss << dis(gen);
+        };
+        return ss.str();
+    }
+}
+
+void write_string_to_file(std::string string_to_write, std::string experiment_id) {
+    std::fstream file;
+    file.open(experiment_id+".txt", std::ios_base::app);
+
+    if (!file.is_open()) {
+        cout << "Unable to open the file.\n";
+        return;
+    }
+
+    file << string_to_write + "\n";
+
+    file.close();
+}
 std::string vectorToString(const std::vector<int>& vec) {
     std::string result;
     result.reserve(vec.size());
@@ -2925,7 +2977,11 @@ void search(const int preRound, const int postRound, const int mNum, const int h
         log_string["distinguisher_probability_without_bct"] = total_prob_weight;
         //cout << "wall time: " << response.wall_time() << endl;
         log_string["ortools_wall_time"] = response.wall_time();
+        std::string experiment_id = uuid::generate_uuid_v4();
+        log_string["experiment_id"] = experiment_id;
         std::cout << log_string.dump() << std::endl;
+
+        write_string_to_file(log_string.dump(), experiment_id);
     }
 
     return;
@@ -3155,14 +3211,14 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
 void running_time_single_key_scenario(){
     constexpr int speck_versions[5] = {32, 48, 64, 96, 128};
     constexpr int number_rounds_per_speck_version[5][10] = {
-            {1, 2, 3, 4, 5, 6, 0, 0, 0, 0},
-            {1, 2, 3, 4, 5, 6, 7, 0, 0, 0},
-            {1, 2, 3, 4, 5, 6, 7, 8, 0, 0},
-            {1, 2, 3, 4, 5, 6, 7, 8, 9, 0},
+            {1, 2, 3, 4, 5, 6, 0, 0, 0, 0 },
+            {1, 2, 3, 4, 5, 6, 7, 0, 0, 0 },
+            {1, 2, 3, 4, 5, 6, 7, 8, 0, 0 },
+            {1, 2, 3, 4, 5, 6, 7, 8, 9, 0 },
             {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     };
     int number_of_speck_versions = 5;
-    int max_number_of_rounds = 10;
+    int max_number_of_rounds = 6;
     for (int i = 0; i < number_of_speck_versions; i++) {
         for (int j = 0; j < max_number_of_rounds; j++) {
             for (int window_size = -1; window_size < 4; window_size++) {
@@ -3192,7 +3248,6 @@ void running_time_single_key_scenario(){
                             exit(-1);
                         
                     }
-                    exit(-1);
                 }
             }
         }
