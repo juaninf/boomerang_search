@@ -2,10 +2,15 @@
 #include "bct_entry.hpp"
 #include "window_size_util.h"
 
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
+
 #include <iostream>
 #include <vector>
 #include <array>
 #include <tuple>
+#include <algorithm>
+
 
 using std::cout;
 using std::endl;
@@ -21,6 +26,25 @@ constexpr int getAlpha() { return branchSize == 16 ? 7 : 8; }
 
 template<int branchSize>
 constexpr int getBeta() { return branchSize == 16 ? 2 : 3; }
+
+std::string vectorToString(const std::vector<int>& vec) {
+    std::string result;
+    result.reserve(vec.size());
+
+    int halfSize = vec.size() / 2;
+
+    // Reverse the first half
+    for (int i = halfSize - 1; i >= 0; i--) {
+        result.push_back(static_cast<char>('0' + vec[i]));
+    }
+
+    // Reverse the second half
+    for (int i = vec.size() - 1; i >= halfSize; i--) {
+        result.push_back(static_cast<char>('0' + vec[i]));
+    }
+
+    return result;
+}
 
 static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
 {
@@ -2621,10 +2645,10 @@ void search(const int preRound, const int postRound, const int mNum, const int h
     SatParameters parameters;
     //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
     parameters.set_num_search_workers(10);
-    parameters.set_log_search_progress(true);
+    parameters.set_log_search_progress(false);
 
     CpModelBuilder cp_model;
-    std::vector<IntVar> probs;
+    std::vector<IntVar> probs; // apparently they model the probabilities as pr = \neg x; this is why it is necessary to do branch_size - 1 - x
     std::vector< std::array<BoolVec, 2> > allState;
 
     std::array<BoolVec, 2> inputDiff = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -2721,64 +2745,87 @@ void search(const int preRound, const int postRound, const int mNum, const int h
     //const auto response = Solve(model_built);
     const auto response = SolveWithParameters(model_built, parameters);
     const auto status = response.status();
-
+    json log_string;
+    log_string["speck_block_size"] = 2*branchSize;
+    log_string["window_size"] = window_size;
+    log_string["status"] = status;
     // CpSolverStatus::INFEASIBLE = 3
     if (status == CpSolverStatus::OPTIMAL || status == CpSolverStatus::FEASIBLE) {
-        cout << "==== pre-rounds: " << preRound << ", post-rounds: " << postRound << ", m-rounds: " << mNum + 2 << " ====" << endl << endl;
+        //cout << "{\"pre-rounds\": " << preRound << ", \"post-rounds\": " << postRound << ", m-rounds: " << mNum + 2 << " ====" << endl << endl;
+        log_string["pre-rounds"] = preRound;
+        log_string["post-rounds"] = postRound;
+        log_string["mNum"] = mNum + 2;
         std::vector<int> tmp;
-
         for (int i = 0; i < 2; ++i) {
-            for (int j = 0; j < branchSize; ++j)
+            for (int j = 0; j < branchSize; ++j) {
                 tmp.push_back(SolutionIntegerValue(response, inputDiff[i][j]));
+            }
         }
-        cout << "inputDiff: " << endl;
-        printm<branchSize>(tmp);
+        log_string["E1"]["inputDiff"] = vectorToString(tmp);
+        // cout << "inputDiff: " << endl;
+        // printm<branchSize>(tmp);
 
         tmp.clear();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < branchSize; ++j)
                 tmp.push_back(SolutionIntegerValue(response, allState[preRound][i][j]));
         }
-        cout << "E1 output diff: " << endl;
-        printm<branchSize>(tmp);
+        //cout << "E1 output diff: " << endl;
+        //printm<branchSize>(tmp);
+        log_string["E1"]["outputDiff"] = vectorToString(tmp);
 
         tmp.clear();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < branchSize; ++j)
                 tmp.push_back(SolutionIntegerValue(response, allState[preRound + 1][i][j]));
         }
-        cout << "E2 input diff: " << endl;
-        printm<branchSize>(tmp);
+        //cout << "E2 input diff: " << endl;
+        //printm<branchSize>(tmp);
+        log_string["E2"]["inputDiff"] = vectorToString(tmp);
+
 
         tmp.clear();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < branchSize; ++j)
                 tmp.push_back(SolutionIntegerValue(response, allState[preRound + 1 + postRound][i][j]));
         }
-        cout << "outputDiff: " << endl;
-        printm<branchSize>(tmp);
+        //cout << "outputDiff: " << endl;
+        //printm<branchSize>(tmp);
+        log_string["E2"]["outputDiff"] = vectorToString(tmp);
 
         unsigned long long int dnlrv[6];
-        cout << "UBCT: " << endl;
+
+        //cout << "UBCT: " << endl;
+        std::vector<std::string> ubct_coords;
         for (int i = 0; i < 5; ++i) {
-            cout << "0b";
+            std::string ubct_log = "0b";
+            //cout << "0b";
             dnlrv[i] = 0;
             for (int j = 0; j < branchSize; ++j) {
                 const unsigned int bit = SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]);
-                cout << bit;
+                //cout << bit;
+                ubct_log = ubct_log + std::to_string(bit);
                 dnlrv[i] = (dnlrv[i] << 1) + (bit&1);
             }
-            cout << endl;
+            ubct_coords.push_back(ubct_log);
+            //cout << endl;
         }
+        log_string["UBCT"] = ubct_coords;
+
         if (branchSize < 64 / 2) {
             const auto ubct_entryv = ubct_entry(dnlrv[0], dnlrv[1], dnlrv[2], dnlrv[3], dnlrv[4], branchSize);
-            cout << ubct_entryv << " = 2^{" << log2(ubct_entryv) << "}" << endl;
+            //cout << ubct_entryv << " = 2^{" << log2(ubct_entryv) << "}" << endl;
+            log_string["UBCT_entry"]["raw"] = ubct_entryv;
+            log_string["UBCT_entry"]["log2"] = log2(ubct_entryv);
         } else {
             const auto ubct_prob = ubct_entry128(dnlrv[0], dnlrv[1], dnlrv[2], dnlrv[3], dnlrv[4], branchSize);
-            cout << ubct_prob << " = 2^{" << log2(ubct_prob) << "}" << endl;
+            log_string["UBCT_entry"]["raw"] = ubct_prob;
+            log_string["UBCT_entry"]["log2"] = log2(ubct_prob);
+            //cout << ubct_prob << " = 2^{" << log2(ubct_prob) << "}" << endl;
         }
 
-        cout << endl << "EBCT: " << endl;
+        //cout << endl << "EBCT: " << endl;
+
         for (int mi = 0; mi < mNum; ++mi) {
             for (int i = 0; i < 6; ++i) {
                 dnlrv[i] = 0;
@@ -2798,58 +2845,87 @@ void search(const int preRound, const int postRound, const int mNum, const int h
                 cout << ebct_prob << " = 2^{" << log2(ebct_prob) << "}" << endl;
             }
         }
-
-        cout << endl << "LBCT: " << endl;
+        std::vector<std::string> lbct_coords;
+        //cout << endl << "LBCT: " << endl;
         for (int i = 0; i < 5; ++i) {
-            cout << "0b";
+            std::string lbct_log = "0b";
+            //cout << "0b";
             dnlrv[i] = 0;
             for (int j = 0; j < branchSize; ++j) {
                 const unsigned int bit = SolutionIntegerValue(response, intermediate[5 + 6 * mNum + i][branchSize - 1 - j]);
-                cout << bit;
+                //cout << bit;
+                lbct_log = lbct_log + std::to_string(bit);
                 dnlrv[i] = (dnlrv[i] << 1) + (bit&1);
             }
-            cout << endl;
+            lbct_coords.push_back(lbct_log);
+            //cout << endl;
         }
+        log_string["LBCT"] = lbct_coords;
+
         if (branchSize < 64 / 2) {
             const unsigned long long lbct_entryv = lbct_entry(dnlrv[0], dnlrv[1], dnlrv[2], dnlrv[3], dnlrv[4], branchSize);
-            cout << lbct_entryv << " = 2^{" << log2(lbct_entryv) << "}" << endl;
+            //cout << lbct_entryv << " = 2^{" << log2(lbct_entryv) << "}" << endl;
+            log_string["LBCT_entry"]["raw"] = lbct_entryv;
+            log_string["LBCT_entry"]["log2"] = log2(lbct_entryv);
         } else {
             const auto lbct_prob = lbct_entry128(dnlrv[0], dnlrv[1], dnlrv[2], dnlrv[3], dnlrv[4], branchSize);
-            cout << lbct_prob << " = 2^{" << log2(lbct_prob) << "}" << endl;
+            //cout << lbct_prob << " = 2^{" << log2(lbct_prob) << "}" << endl;
+            log_string["LBCT_entry"]["raw"] = lbct_prob;
+            log_string["LBCT_entry"]["log2"] = log2(lbct_prob);
         }
 
-        cout << "probs:" << endl;
+        //cout << "probs:" << endl;
+        std::vector<int> probabilities;
         for (auto &prob : probs) {
-            cout << (branchSize - 1) - SolutionIntegerValue(response, prob) << endl;
+            //cout << (branchSize - 1) - SolutionIntegerValue(response, prob). << endl;
+            probabilities.push_back((branchSize - 1) - SolutionIntegerValue(response, prob));
         }
-        cout << endl;
+        log_string["probs"] = probabilities;
 
-        cout << "isHalf: " << endl;
+
+        //cout << endl;
+
+        //cout << "isHalf: " << endl;
+        std::vector<int> isHalf_vector;
         for (auto &bit : interBits) {
-            cout << SolutionIntegerValue(response, bit) << endl;
+            //cout << SolutionIntegerValue(response, bit) << endl;
+            isHalf_vector.push_back(0 + SolutionIntegerValue(response, bit));
         }
-        cout << endl;
-
-        cout << "intermediate: " << endl;
+        //cout << endl;
+        log_string["isHalf"] = isHalf_vector;
+        std::vector<std::string> intermediate_values;
+        //cout << "intermediate: " << endl;
         const int _tmpsize = intermediate.size();
-        cout << "_tmpsize: " << _tmpsize << endl;
+        //cout << "_tmpsize: " << _tmpsize << endl;
         for (int i = 0; i < _tmpsize; ++i) {
-            cout << "0b";
-            for (int j = 0; j < branchSize; ++j)
-                cout << SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]);
-            cout << endl;
+            std::string intermediate_temp = "0b";
+            //cout << "0b";
+            for (int j = 0; j < branchSize; ++j) {
+                intermediate_temp += std::to_string(SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]));
+               // cout << SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]);
+            }
+            intermediate_values.push_back(intermediate_temp);
+            //cout << endl;
         }
+        log_string["intermediate_values"] = intermediate_values;
 
         auto prob = SolutionIntegerValue(response, totalProb);
         auto prob1 = SolutionIntegerValue(response, e1Prob);
         //auto sprob = SolutionIntegerValue(response, switchProb);
         //cout << "switchProb: " << prob << " / 2^" << blockSize << endl;
-        cout << "e1Prob: 2^{" << prob1 << "} / 2^" << (preRound * (branchSize - 1))
-             << " = 2^{-" << preRound * (branchSize - 1) - prob1 << "}" << endl;
-        cout << "totalProb: (2^{" << prob << "} / 2^" << (branchSize - 1) * (preRound + postRound)  << ")^2"
-             << " = (2^{-" << (branchSize - 1) * (preRound + postRound) - prob << "}) ^ 2"
-             << " = 2^{-" << (branchSize - 1) * (preRound + postRound) * 2 - prob * 2 << "}" << endl;
-        cout << "wall time: " << response.wall_time() << endl;
+        //cout << "e1Prob: 2^{" << prob1 << "} / 2^" << (preRound * (branchSize - 1))
+        //     << " = 2^{-" << preRound * (branchSize - 1) - prob1 << "}" << endl;
+        int e1_prob_weight = preRound * (branchSize - 1) - prob1;
+        log_string["pr_weight_E1"] = e1_prob_weight;
+        int total_prob_weight = (branchSize - 1) * (preRound + postRound) * 2 - prob * 2;
+        //cout << "totalProb: (2^{" << prob << "} / 2^" << (branchSize - 1) * (preRound + postRound)  << ")^2"
+        //     << " = (2^{-" << (branchSize - 1) * (preRound + postRound) - prob << "}) ^ 2"
+         //    << " = 2^{-" << (branchSize - 1) * (preRound + postRound) * 2 - prob * 2 << "}" << endl;
+
+        log_string["distinguisher_probability_without_bct"] = total_prob_weight;
+        //cout << "wall time: " << response.wall_time() << endl;
+        log_string["ortools_wall_time"] = response.wall_time();
+        std::cout << log_string.dump() << std::endl;
     }
 
     return;
@@ -2863,7 +2939,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
     SatParameters parameters;
     //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
     parameters.set_num_search_workers(12);
-    parameters.set_log_search_progress(true);
+    parameters.set_log_search_progress(false);
 
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
@@ -3019,7 +3095,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
             }
         }
 
-        cout << endl << "LBCT: " << endl;
+        //cout << endl << "LBCT: " << endl;
         for (int i = 0; i < 5; ++i) {
             cout << "0b";
             dnlrv[i] = 0;
@@ -3063,12 +3139,12 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
         const auto prob1 = SolutionIntegerValue(response, e1Prob);
         //auto sprob = SolutionIntegerValue(response, switchProb);
         //cout << "switchProb: " << prob << " / 2^" << blockSize << endl;
-        cout << "e1Prob: 2^{" << prob1 << "} / 2^" << (preRound * (branchSize - 1))
+        cout << "{\"e1Prob\": 2^{" << prob1 << "} / 2^" << (preRound * (branchSize - 1))
              << " = 2^{-" << preRound * (branchSize - 1) - prob1 << "}" << endl;
-        cout << "totalProb: (2^{" << prob << "} / 2^" << (branchSize - 1) * (preRound + postRound)  << ")^2"
+        cout << "{\"totalProb\": (2^{" << prob << "} / 2^" << (branchSize - 1) * (preRound + postRound)  << ")^2"
              << " = (2^{-" << (branchSize - 1) * (preRound + postRound) - prob << "}) ^ 2"
              << " = 2^{-" << (branchSize - 1) * (preRound + postRound) * 2 - prob * 2 << "}" << endl;
-        cout << "wall time: " << response.wall_time() << endl;
+        cout << "{\"wall_time\": " << response.wall_time() << endl;
 
         return (branchSize - 1) * (preRound + postRound) - prob;
     }
@@ -3076,10 +3152,57 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
     return 200;
 }
 
+void running_time_single_key_scenario(){
+    constexpr int speck_versions[5] = {32, 48, 64, 96, 128};
+    constexpr int number_rounds_per_speck_version[5][10] = {
+            {1, 2, 3, 4, 5, 6, 0, 0, 0, 0},
+            {1, 2, 3, 4, 5, 6, 7, 0, 0, 0},
+            {1, 2, 3, 4, 5, 6, 7, 8, 0, 0},
+            {1, 2, 3, 4, 5, 6, 7, 8, 9, 0},
+            {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+    };
+
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 10; j++) {
+            for (int window_size = -1; window_size < 4; window_size++) {
+                if (number_rounds_per_speck_version[i][j] != 0) {
+                    int block_size = speck_versions[i];
+                    int half_block_size = block_size/2;
+                    const int top_number_of_rounds = number_rounds_per_speck_version[i][j];
+                    const int bottom_number_of_rounds = top_number_of_rounds;
+                    switch (half_block_size) {
+                        case 16:
+                            search<16>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                            break;
+                        case 24:
+                            search<24>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                            break;
+                        case 32:
+                            search<32>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                            break;
+                        case 48:
+                            search<48>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                            break;
+                        case 64:
+                            search<64>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                            break;
+                        default:
+                            printf("Speck version does not exists");
+                            exit(-1);
+                        
+                    }
+                    exit(-1);
+                }
+            }
+        }
+    }
+}
 
 int main()
 {
-    search<32 / 2>(5, 5, 0, 16, 0);
-    // search<48 / 2>(5, 5, 0, 24, 0);
+    //search<32 / 2>(4, 4, 0, 16, -1);
+
+    running_time_single_key_scenario();
+    //search<48 / 2>(5, 5, 0, 24, 0);
     return 0;
 }

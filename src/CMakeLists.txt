@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -13,10 +13,11 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
 add_subdirectory(poc)
 add_subdirectory(3rd)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/or-tools)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/json)
 
 # ==== speck ====
 add_executable(speck_boomerang2 speck_boomerang2.cpp)
-target_link_libraries(speck_boomerang2 ortools::ortools)
+target_link_libraries(speck_boomerang2 ortools::ortools nlohmann_json::nlohmann_json)
 
 add_executable(speck_boomerang_enum speck_boomerang_enum.cpp)
 target_link_libraries(speck_boomerang_enum ortools::ortools)
