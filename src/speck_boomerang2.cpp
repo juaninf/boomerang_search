@@ -1,27 +1,20 @@
 #include "ortools_extend_sat.h"
+#include "speck_boomerang2.h"
 #include "bct_entry.hpp"
 #include "window_size_util.h"
-
 #include "nlohmann/json.hpp"
-using json = nlohmann::json;
-
 #include <iostream>
 #include <vector>
 #include <array>
 #include <tuple>
 #include <algorithm>
-#include<fstream>
-#include <sstream>
-#include <random>
 
 
-using std::cout;
-using std::endl;
 
+using json = nlohmann::json;
 using namespace operations_research;
 using namespace operations_research::sat;
 
-static std::vector< BoolVec > intermediate;
 static std::vector< BoolVar > interBits;
 
 template<int branchSize>
@@ -29,74 +22,6 @@ constexpr int getAlpha() { return branchSize == 16 ? 7 : 8; }
 
 template<int branchSize>
 constexpr int getBeta() { return branchSize == 16 ? 2 : 3; }
-
-
-
-namespace uuid {
-    static std::random_device              rd;
-    static std::mt19937                    gen(rd());
-    static std::uniform_int_distribution<> dis(0, 15);
-    static std::uniform_int_distribution<> dis2(8, 11);
-
-    std::string generate_uuid_v4() {
-        std::stringstream ss;
-        int i;
-        ss << std::hex;
-        for (i = 0; i < 8; i++) {
-            ss << dis(gen);
-        }
-        ss << "-";
-        for (i = 0; i < 4; i++) {
-            ss << dis(gen);
-        }
-        ss << "-4";
-        for (i = 0; i < 3; i++) {
-            ss << dis(gen);
-        }
-        ss << "-";
-        ss << dis2(gen);
-        for (i = 0; i < 3; i++) {
-            ss << dis(gen);
-        }
-        ss << "-";
-        for (i = 0; i < 12; i++) {
-            ss << dis(gen);
-        };
-        return ss.str();
-    }
-}
-
-void write_string_to_file(std::string string_to_write, std::string experiment_id) {
-    std::fstream file;
-    file.open(experiment_id+".txt", std::ios_base::app);
-
-    if (!file.is_open()) {
-        cout << "Unable to open the file.\n";
-        return;
-    }
-
-    file << string_to_write + "\n";
-
-    file.close();
-}
-std::string vectorToString(const std::vector<int>& vec) {
-    std::string result;
-    result.reserve(vec.size());
-
-    int halfSize = vec.size() / 2;
-
-    // Reverse the first half
-    for (int i = halfSize - 1; i >= 0; i--) {
-        result.push_back(static_cast<char>('0' + vec[i]));
-    }
-
-    // Reverse the second half
-    for (int i = vec.size() - 1; i >= halfSize; i--) {
-        result.push_back(static_cast<char>('0' + vec[i]));
-    }
-
-    return result;
-}
 
 static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
 {
@@ -2562,7 +2487,7 @@ static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::
 }
 
 template<int branchSize>
-static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, const int halfNum)
+static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2593,7 +2518,7 @@ static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 }
 
 template<int branchSize>
-static void _addSwitchLBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &nablaIn, const int halfNum)
+static void _addSwitchLBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &nablaIn, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2627,7 +2552,7 @@ static void _addSwitchLBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 }
 
 template<int branchSize>
-static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, std::array<BoolVec, 2> &nablaIn, const int halfNum)
+static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, std::array<BoolVec, 2> &nablaIn, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2666,7 +2591,9 @@ static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 }
 
 template<int branchSize>
-static void addSwitchM(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum)
+static void addSwitchM(
+        CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum, std::vector< BoolVec > &intermediate
+        )
 {
     std::vector< std::array<BoolVec, 2> > EBCTs;
 
@@ -2675,23 +2602,24 @@ static void addSwitchM(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std
 
     EBCTs.push_back(initEBCTd);
     EBCTs.push_back(initEBCTn);
-    _addSwitchUBCT<branchSize>(model, delta, initEBCTn, initEBCTd, halfNum);
+    _addSwitchUBCT<branchSize>(model, delta, initEBCTn, initEBCTd, halfNum, intermediate);
 
     for (int i = 0; i < mNum; ++i) {
         std::array<BoolVec, 2> EBCTd = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
         std::array<BoolVec, 2> EBCTn = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
         EBCTs.push_back(EBCTd);
         EBCTs.push_back(EBCTn);
-        _addSwitchEBCT<branchSize>(model, EBCTs[2 * i], EBCTn, EBCTd, EBCTs[2 * i + 1], halfNum);
+        _addSwitchEBCT<branchSize>(model, EBCTs[2 * i], EBCTn, EBCTd, EBCTs[2 * i + 1], halfNum, intermediate);
     }
 
-    _addSwitchLBCT<branchSize>(model, EBCTs[2 * mNum], nabla, EBCTs[2 * mNum + 1], halfNum);
+    _addSwitchLBCT<branchSize>(model, EBCTs[2 * mNum], nabla, EBCTs[2 * mNum + 1], halfNum, intermediate);
     return;
 }
 
 template<int branchSize>
 void search(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size)
 {
+    std::vector< BoolVec > intermediate;
     constexpr int blockSize = 2 * branchSize;
 
     SatParameters parameters;
@@ -2740,7 +2668,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
     allState.push_back(switchState);
 
     //addSwitch2(cp_model, allState[preRound], switchState, halfNum, halfNum);
-    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum);
+    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum, intermediate);
 
     for (int i = 1; i <= postRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -2990,6 +2918,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
 template<int branchSize>
 static int searchT(const int preRound, const int postRound, const int mNum, const int halfNum, const int first0, const int second0, int window_size)
 {
+    std::vector< BoolVec > intermediate;
     constexpr int blockSize = 2 * branchSize;
 
     SatParameters parameters;
@@ -3036,7 +2965,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
     allState.push_back(switchState);
 
     //addSwitch2(cp_model, allState[preRound], switchState, halfNum, halfNum);
-    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum);
+    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum, intermediate);
 
     for (int i = 1; i <= postRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
