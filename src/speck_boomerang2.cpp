@@ -1,4 +1,3 @@
-#include "ortools_extend_sat.h"
 #include "speck_boomerang2.h"
 #include "bct_entry.hpp"
 #include "window_size_util.h"
@@ -2639,8 +2638,16 @@ void search(const int preRound, const int postRound, const int mNum, const int h
         for (int j = 0; j < branchSize; ++j)
             inputBits.push_back(inputDiff[i][j]);
     cp_model.AddBoolOr(inputBits);
-    //cp_model.AddEquality(inputDiff[1][11], 1);
-    //cp_model.AddEquality(LinearExpr::Sum(inputDiff[1]), 1);
+    cp_model.AddEquality(inputDiff[0][11], 1);
+    cp_model.AddEquality(inputDiff[0][13], 1);
+    cp_model.AddEquality(inputDiff[1][4], 1);
+    cp_model.AddEquality(LinearExpr::Sum(inputDiff[0]), 2);
+    cp_model.AddEquality(LinearExpr::Sum(inputDiff[1]), 1);
+
+
+
+
+
     for (int i = 1; i <= preRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
         allState.push_back(state);
@@ -2660,12 +2667,16 @@ void search(const int preRound, const int postRound, const int mNum, const int h
             //cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 5));
         }
     }
-
     auto e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
     cp_model.AddEquality(e1Prob, LinearExpr::Sum(probs));
 
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(switchState);
+
+    std::vector<int> binary_left = {0, 0, 0, 0, 1,0,1,0,0,0,0,0,0,1,0,0};
+    std::vector<int> binary_right = {0, 0, 0, 0, 1,0,0,0,0,0,0,0,0,1,0,0};
+    mapBoolVecToBinary(switchState[0], binary_left, cp_model);
+    mapBoolVecToBinary(switchState[1], binary_right, cp_model);
 
     //addSwitch2(cp_model, allState[preRound], switchState, halfNum, halfNum);
     addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum, intermediate);
@@ -2709,7 +2720,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
 
     }
 
-    std::vector<BoolVar> outputBits;
+    std::vector<BoolVar> outputBits; // aparently never used
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < branchSize; ++j)
             outputBits.push_back(allState[preRound + 1 + postRound][i][j]);
@@ -2911,7 +2922,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
 
         write_string_to_file(log_string.dump(), experiment_id);
     }
-
+    print_states(allState, branchSize, response);
     return;
 }
 
@@ -3185,9 +3196,9 @@ void running_time_single_key_scenario(){
 
 int main()
 {
-    //search<32 / 2>(4, 4, 0, 16, -1);
+    search<32 / 2>(4, 4, 0, 16, -1);
 
-    running_time_single_key_scenario();
+    //running_time_single_key_scenario();
     //search<48 / 2>(5, 5, 0, 24, 0);
     return 0;
 }
