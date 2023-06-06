@@ -15,5 +15,5 @@ endif()
 
 add_subdirectory(src)
 
-add_executable(testrun src/test.cpp src/window_size_util.h src/speck_boomerang2.h)
-target_link_libraries(testrun absl::numeric  Catch2::Catch2)
+add_executable(testrun src/test.cpp src/speck_boomerang2.cpp src/ortools_extend_sat.cpp src/bct_entry.cpp src/window_size_util.cpp)
+target_link_libraries(testrun absl::numeric Catch2::Catch2 ortools::ortools nlohmann_json::nlohmann_json)

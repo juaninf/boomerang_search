@@ -1,7 +1,6 @@
-#include "speck_boomerang2.h"
 #include "bct_entry.hpp"
+#include "speck_boomerang2.h"
 #include "window_size_util.h"
-#include "nlohmann/json.hpp"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -10,9 +9,7 @@
 
 
 
-using json = nlohmann::json;
-using namespace operations_research;
-using namespace operations_research::sat;
+
 
 static std::vector< BoolVar > interBits;
 
@@ -21,6 +18,100 @@ constexpr int getAlpha() { return branchSize == 16 ? 7 : 8; }
 
 template<int branchSize>
 constexpr int getBeta() { return branchSize == 16 ? 2 : 3; }
+
+std::string vectorToString(const std::vector<int>& vec) {
+    std::string result;
+    result.reserve(vec.size());
+
+    int halfSize = vec.size() / 2;
+
+    // Reverse the first half
+    for (int i = halfSize - 1; i >= 0; i--) {
+        result.push_back(static_cast<char>('0' + vec[i]));
+    }
+
+    // Reverse the second half
+    for (int i = vec.size() - 1; i >= halfSize; i--) {
+        result.push_back(static_cast<char>('0' + vec[i]));
+    }
+
+    return result;
+}
+
+void write_string_to_file(std::string string_to_write, std::string experiment_id) {
+    std::fstream file;
+    file.open(experiment_id+".txt", std::ios_base::app);
+
+    if (!file.is_open()) {
+        cout << "Unable to open the file.\n";
+        return;
+    }
+
+    file << string_to_write + "\n";
+
+    file.close();
+}
+
+std::string binaryToHex(const std::string& binaryString, int bit_size) {
+    std::bitset<256> bits(binaryString);  // Assuming 256-bit binary string, adjust the size as needed
+    std::stringstream hexStream;
+    hexStream << std::hex << std::setw((bit_size + 3) / 4) << std::setfill('0') << bits.to_ulong();
+    return hexStream.str();
+}
+
+void print_states(std::vector< std::array<BoolVec, 2> > allState, int branch_size, operations_research::sat::CpSolverResponse response) {
+
+    for (int k = 0; k < allState.size(); k++) {
+        std::vector<int> tmp;
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < branch_size; j++)
+                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
+        cout<<binaryToHex(vectorToString(tmp), 2*branch_size)<<endl;
+    }
+}
+
+
+void mapBoolVecToBinary(const BoolVec& boolvec, const std::vector<int>& binary, operations_research::sat::CpModelBuilder& cp_model) {
+    int n = boolvec.size();
+    for (int i = 0; i < n; i++) {
+        printf("binary[i]=%d\n", binary[i]);
+        cp_model.AddEquality(boolvec[n - i - 1], binary[i]);
+    }
+}
+
+namespace uuid {
+    static std::random_device              rd;
+    static std::mt19937                    gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+
+    std::string generate_uuid_v4() {
+        std::stringstream ss;
+        int i;
+        ss << std::hex;
+        for (i = 0; i < 8; i++) {
+            ss << dis(gen);
+        }
+        ss << "-";
+        for (i = 0; i < 4; i++) {
+            ss << dis(gen);
+        }
+        ss << "-4";
+        for (i = 0; i < 3; i++) {
+            ss << dis(gen);
+        }
+        ss << "-";
+        ss << dis2(gen);
+        for (i = 0; i < 3; i++) {
+            ss << dis(gen);
+        }
+        ss << "-";
+        for (i = 0; i < 12; i++) {
+            ss << dis(gen);
+        };
+        return ss.str();
+    }
+}
 
 static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
 {
@@ -2616,21 +2707,9 @@ static void addSwitchM(
 }
 
 template<int branchSize>
-void search(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size)
-{
-    std::vector< BoolVec > intermediate;
-    constexpr int blockSize = 2 * branchSize;
-
-    SatParameters parameters;
-    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
-    parameters.set_num_search_workers(10);
-    parameters.set_log_search_progress(false);
-
-    CpModelBuilder cp_model;
-    std::vector<IntVar> probs; // apparently they model the probabilities as pr = \neg x; this is why it is necessary to do branch_size - 1 - x
-    std::vector< std::array<BoolVec, 2> > allState;
-
-    std::array<BoolVec, 2> inputDiff = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
+CpModelBuilder create_model(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                            std::array<BoolVec, 2> &inputDiff, std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
+                            std::vector<IntVar> &probs, IntVar &totalProb, IntVar &e1Prob, CpModelBuilder &cp_model){
     allState.push_back(inputDiff);
 
     std::vector<BoolVar> inputBits;
@@ -2643,9 +2722,6 @@ void search(const int preRound, const int postRound, const int mNum, const int h
     cp_model.AddEquality(inputDiff[1][4], 1);
     cp_model.AddEquality(LinearExpr::Sum(inputDiff[0]), 2);
     cp_model.AddEquality(LinearExpr::Sum(inputDiff[1]), 1);
-
-
-
 
 
     for (int i = 1; i <= preRound; ++i) {
@@ -2667,7 +2743,7 @@ void search(const int preRound, const int postRound, const int mNum, const int h
             //cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 5));
         }
     }
-    auto e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
+    //auto e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
     cp_model.AddEquality(e1Prob, LinearExpr::Sum(probs));
 
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -2701,22 +2777,22 @@ void search(const int preRound, const int postRound, const int mNum, const int h
     }
 
     if (false) {
-    //const std::array<unsigned long long int, 2> inputV{{ 0x92400040, 0x40104200 }};
-    //const std::array<unsigned long long int, 2> outputV{{ 0x84008020, 0x80008124 }};
-    const std::array<unsigned long long int, 2> inputV {{ 0b0010100000000000, 0b0000000000010000 }};
-    const std::array<unsigned long long int, 2> outputV{{ 0b1000000000000000, 0b1000010000001010 }};
+        //const std::array<unsigned long long int, 2> inputV{{ 0x92400040, 0x40104200 }};
+        //const std::array<unsigned long long int, 2> outputV{{ 0x84008020, 0x80008124 }};
+        const std::array<unsigned long long int, 2> inputV {{ 0b0010100000000000, 0b0000000000010000 }};
+        const std::array<unsigned long long int, 2> outputV{{ 0b1000000000000000, 0b1000010000001010 }};
 
-    for (int i = 0; i < 2; ++i)
-        for (int j = 0; j < branchSize; ++j) {
-            auto tmpc = ((inputV[i] >> j) & 1) == 0 ? cp_model.FalseVar() : cp_model.TrueVar();
-            cp_model.AddEquality(allState[0][i][j], tmpc);
-        }
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < branchSize; ++j) {
+                auto tmpc = ((inputV[i] >> j) & 1) == 0 ? cp_model.FalseVar() : cp_model.TrueVar();
+                cp_model.AddEquality(allState[0][i][j], tmpc);
+            }
 
-    for (int i = 1; i < 2; ++i)
-        for (int j = 0; j < branchSize; ++j) {
-            auto tmpc = ((outputV[i] >> j) & 1) == 0 ? cp_model.FalseVar() : cp_model.TrueVar();
-            cp_model.AddEquality(allState[preRound + 1 + postRound][i][j], tmpc);
-        }
+        for (int i = 1; i < 2; ++i)
+            for (int j = 0; j < branchSize; ++j) {
+                auto tmpc = ((outputV[i] >> j) & 1) == 0 ? cp_model.FalseVar() : cp_model.TrueVar();
+                cp_model.AddEquality(allState[preRound + 1 + postRound][i][j], tmpc);
+            }
 
     }
 
@@ -2726,11 +2802,22 @@ void search(const int preRound, const int postRound, const int mNum, const int h
             outputBits.push_back(allState[preRound + 1 + postRound][i][j]);
     cp_model.AddBoolOr(outputBits);
 
-    auto totalProb = cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
+
     cp_model.AddEquality(totalProb, LinearExpr::Sum(probs));
 
     cp_model.Maximize(totalProb);
 
+    return cp_model;
+}
+template<int branchSize>
+void search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+            std::array<BoolVec, 2> &inputDiff, std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
+            std::vector<IntVar> &probs, IntVar &totalProb, IntVar &e1Prob)
+{
+    SatParameters parameters;
+    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
+    parameters.set_num_search_workers(10);
+    parameters.set_log_search_progress(false);
     auto model_built = cp_model.Build();
 
     //const auto response = Solve(model_built);
@@ -3148,7 +3235,7 @@ static int searchT(const int preRound, const int postRound, const int mNum, cons
     return 200;
 }
 
-void running_time_single_key_scenario(){
+/*void running_time_single_key_scenario(){
     constexpr int speck_versions[5] = {32, 48, 64, 96, 128};
     constexpr int number_rounds_per_speck_version[5][10] = {
             {1, 2, 3, 4, 5, 6, 0, 0, 0, 0 },
@@ -3192,11 +3279,25 @@ void running_time_single_key_scenario(){
             }
         }
     }
-}
+}*/
 
 int main()
 {
-    search<32 / 2>(4, 4, 0, 16, -1);
+    int preRound = 4;
+    int postRound = 4;
+    const int branchSize = 16;
+    CpModelBuilder cp_model;
+    std::vector< BoolVec > intermediate;
+    constexpr int blockSize = 2 * branchSize;
+    auto totalProb = cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
+    std::array<BoolVec, 2> inputDiff = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
+    std::vector< std::array<BoolVec, 2> > allState;
+    std::vector<IntVar> probs; // apparently they model the probabilities as pr = \neg x; this is why it is necessary to do branch_size - 1 - x
+    IntVar e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
+
+
+    create_model<32 / 2>(4, 4, 0, 16, -1, inputDiff, allState, intermediate, probs, totalProb, e1Prob, cp_model);
+    search<32 / 2>(cp_model, 4, 4, 0, 16, -1, inputDiff, allState, intermediate, probs, totalProb, e1Prob);
 
     //running_time_single_key_scenario();
     //search<48 / 2>(5, 5, 0, 24, 0);

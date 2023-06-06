@@ -16,12 +16,14 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/or-tools)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/json)
 
 # ==== speck ====
-add_executable(speck_boomerang2 speck_boomerang2.cpp)
+add_executable(speck_boomerang2 speck_boomerang2.cpp ortools_extend_sat.cpp bct_entry.cpp window_size_util.cpp)
 target_link_libraries(speck_boomerang2 ortools::ortools nlohmann_json::nlohmann_json)
+#add_library(speck_boomerang2lib speck_boomerang2.cpp)
+#target_link_libraries(speck_boomerang2lib ortools::ortools nlohmann_json::nlohmann_json)
 
-add_executable(speck_boomerang_enum speck_boomerang_enum.cpp)
+add_executable(speck_boomerang_enum speck_boomerang_enum.cpp ortools_extend_sat.cpp bct_entry.cpp window_size_util.cpp)
 target_link_libraries(speck_boomerang_enum ortools::ortools)
 
 # ==== lea ====
-add_executable(lea_boomerang_enum lea_boomerang_enum.cpp)
+add_executable(lea_boomerang_enum lea_boomerang_enum.cpp ortools_extend_sat.cpp bct_entry.cpp window_size_util.cpp)
 target_link_libraries(lea_boomerang_enum ortools::ortools)
