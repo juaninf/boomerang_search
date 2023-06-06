@@ -1,1 +1,8 @@
 ./build/*
+.idea/
+build/
+cmake-build-debug/
+src/3rd/Catch2/
+src/3rd/json/
+src/3rd/or-tools/
+
