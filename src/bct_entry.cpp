@@ -1,4 +1,4 @@
-#pragma once
+
 #include "bct_entry.hpp"
 #include "absl/numeric/int128.h"
 
