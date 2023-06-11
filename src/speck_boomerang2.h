@@ -41,14 +41,14 @@ namespace speck_boomerang2 {
     json search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum,
                 int window_size, std::vector <std::array<BoolVec, 2>> &allState,
                 std::vector <BoolVec> &intermediate,
-                std::vector <IntVar> &probs, IntVar &totalProb, IntVar &e1Prob);
+                std::vector <IntVar> &probs, IntVar &totalProb);
 
     template<int branchSize>
     CpModelBuilder
     create_model(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                  std::vector <std::array<BoolVec, 2>> &allState,
                  std::vector <BoolVec> &intermediate,
-                 std::vector <IntVar> &probs, IntVar &totalProb, IntVar &e1Prob, CpModelBuilder &cp_model);
+                 std::vector <IntVar> &probs, IntVar &totalProb,  CpModelBuilder &cp_model);
 
 
     template<int branchSize>

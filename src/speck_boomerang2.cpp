@@ -2709,16 +2709,10 @@ template<int branchSize>
     speck_boomerang2::create_model(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                  std::vector <std::array<BoolVec, 2>> &allState,
                  std::vector <BoolVec> &intermediate,
-                 std::vector <IntVar> &probs, IntVar &totalProb, IntVar &e1Prob, CpModelBuilder &cp_model) {
-        //allState.push_back(inputDiff);
+                 std::vector <IntVar> &probs, IntVar &totalProb, CpModelBuilder &cp_model) {
         allState.push_back({NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
-
         std::vector <BoolVar> inputBits;
-        /*for (int i = 0; i < 2; ++i)
-            for (int j = 0; j < branchSize; ++j)
-                inputBits.push_back(inputDiff[i][j]);*/
         cp_model.AddBoolOr(inputBits);
-
 
         for (int i = 1; i <= preRound; ++i) {
             std::array<BoolVec, 2> state = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
@@ -2739,8 +2733,6 @@ template<int branchSize>
                 //cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 5));
             }
         }
-        //auto e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
-        cp_model.AddEquality(e1Prob, LinearExpr::Sum(probs));
 
         std::array<BoolVec, 2> switchState = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
         allState.push_back(switchState);
@@ -2772,7 +2764,7 @@ template<int branchSize>
 template<int branchSize>
 json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
             std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
-            std::vector<IntVar> &probs, IntVar &totalProb, IntVar &e1Prob)
+            std::vector<IntVar> &probs, IntVar &totalProb)
 {
     SatParameters parameters;
     //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
@@ -2948,8 +2940,9 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         log_string["intermediate_values"] = intermediate_values;
 
         auto prob = SolutionIntegerValue(response, totalProb);
-        auto prob1 = SolutionIntegerValue(response, e1Prob);
-        int e1_prob_weight = preRound * (branchSize - 1) - prob1;
+        auto prob1 = std::accumulate(probabilities.begin(), probabilities.begin() + preRound, 0);//
+        cout << 0 + prob1 << " " << std::accumulate(probabilities.begin(), probabilities.begin() + preRound, 0) << endl;
+        int e1_prob_weight = prob1;
         log_string["pr_weight_E1"] = e1_prob_weight;
         int total_prob_weight = (branchSize - 1) * (preRound + postRound) * 2 - prob * 2;
 
@@ -3273,9 +3266,9 @@ template
 CpModelBuilder
 speck_boomerang2::create_model<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size, std::vector <std::array<BoolVec, 2>> &allState,
              std::vector <BoolVec> &intermediate,
-             std::vector <IntVar> &probs, IntVar &totalProb, IntVar &e1Prob, CpModelBuilder &cp_model);
+             std::vector <IntVar> &probs, IntVar &totalProb, CpModelBuilder &cp_model);
 
 template
 json speck_boomerang2::search<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                                          std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
-                                                          std::vector<IntVar> &probs, IntVar &totalProb, IntVar &e1Prob);
+                                                          std::vector<IntVar> &probs, IntVar &totalProb);
