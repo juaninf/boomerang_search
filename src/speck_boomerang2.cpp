@@ -2709,7 +2709,7 @@ template<int branchSize>
     speck_boomerang2::create_model(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                  std::vector <std::array<BoolVec, 2>> &allState,
                  std::vector <BoolVec> &intermediate,
-                 std::vector <IntVar> &probs, IntVar &totalProb, CpModelBuilder &cp_model) {
+                 std::vector <IntVar> &probs, CpModelBuilder &cp_model) {
         allState.push_back({NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
         std::vector <BoolVar> inputBits;
         cp_model.AddBoolOr(inputBits);
@@ -2723,15 +2723,6 @@ template<int branchSize>
 
             addRound<branchSize>(cp_model, allState[i - 1], state, prob, window_size);
             cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 10));
-
-
-            if (i == 1) {
-                //cp_model.AddEquality(prob, cp_model.NewConstant((branchSize - 1)));
-            }
-            if (i != 1 && i != preRound) {
-                //cp_model.AddEquality(prob, cp_model.NewConstant((branchSize - 1) * 3));
-                //cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 5));
-            }
         }
 
         std::array<BoolVec, 2> switchState = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
@@ -2755,8 +2746,8 @@ template<int branchSize>
             for (int j = 0; j < branchSize; ++j)
                 outputBits.push_back(allState[preRound + 1 + postRound][i][j]);
         cp_model.AddBoolOr(outputBits);
-        cp_model.AddEquality(totalProb, LinearExpr::Sum(probs));
-        cp_model.Maximize(totalProb);
+        //cp_model.AddEquality(totalProb, LinearExpr::Sum(probs));
+        cp_model.Maximize(LinearExpr::Sum(probs));
 
         return cp_model;
     }
@@ -2764,7 +2755,7 @@ template<int branchSize>
 template<int branchSize>
 json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
             std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
-            std::vector<IntVar> &probs, IntVar &totalProb)
+            std::vector<IntVar> &probs)
 {
     SatParameters parameters;
     //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
@@ -2939,12 +2930,12 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         }
         log_string["intermediate_values"] = intermediate_values;
 
-        auto prob = SolutionIntegerValue(response, totalProb);
+        //auto prob = SolutionIntegerValue(response, totalProb);
         auto prob1 = std::accumulate(probabilities.begin(), probabilities.begin() + preRound, 0);//
-        cout << 0 + prob1 << " " << std::accumulate(probabilities.begin(), probabilities.begin() + preRound, 0) << endl;
+        cout << 0 + prob1 << " " << std::accumulate(probabilities.begin(), probabilities.end(), 0) << endl;
         int e1_prob_weight = prob1;
         log_string["pr_weight_E1"] = e1_prob_weight;
-        int total_prob_weight = (branchSize - 1) * (preRound + postRound) * 2 - prob * 2;
+        int total_prob_weight = 2*std::accumulate(probabilities.begin(), probabilities.end(), 0);
 
         log_string["distinguisher_probability_without_bct"] = total_prob_weight;
         log_string["ortools_wall_time"] = response.wall_time();
@@ -3266,9 +3257,9 @@ template
 CpModelBuilder
 speck_boomerang2::create_model<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size, std::vector <std::array<BoolVec, 2>> &allState,
              std::vector <BoolVec> &intermediate,
-             std::vector <IntVar> &probs, IntVar &totalProb, CpModelBuilder &cp_model);
+             std::vector <IntVar> &probs, CpModelBuilder &cp_model);
 
 template
 json speck_boomerang2::search<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                                          std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
-                                                          std::vector<IntVar> &probs, IntVar &totalProb);
+                                                          std::vector<IntVar> &probs);

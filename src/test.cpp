@@ -41,14 +41,14 @@ std::vector<std::array<BoolVec, 2>> allState;
 std::vector<BoolVec> intermediate;
 std::vector<IntVar> probs;
 CpModelBuilder cp_model;
-IntVar totalProb =  cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
+//IntVar totalProb =  cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
 
 // Perform any necessary setup before calling the method
 // ...
 
 // Call the method being tested
 create_model<16>(preRound, postRound, mNum, halfNum, window_size,  allState, intermediate,
-        probs, totalProb, cp_model);
+        probs, cp_model);
 
 
 BoolVec left_0_round = allState[0][0];
@@ -64,7 +64,7 @@ std::vector<int> binary_left_5 = {0, 0, 0, 0, 1,0,1,0,0,0,0,0,0,1,0,0};
 std::vector<int> binary_right_5 = {0, 0, 0, 0, 1,0,0,0,0,0,0,0,0,1,0,0};
 mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
 mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);
-json result = search<16>(cp_model, 4, 4, 0, 16, -1,  allState, intermediate, probs, totalProb);
+json result = search<16>(cp_model, 4, 4, 0, 16, -1,  allState, intermediate, probs);
 printf("%s", result["E1"]["inputDiff"].dump().c_str());
 REQUIRE ( strcmp(result["E1"]["inputDiff"].dump().c_str(), "\"00101000000000000000000000010000\"") == 0);
 }
