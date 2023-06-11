@@ -43,28 +43,30 @@ std::vector<IntVar> probs;
 CpModelBuilder cp_model;
 IntVar totalProb =  cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
 IntVar e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
-std::array<BoolVec, 2> inputDiff = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
 
 // Perform any necessary setup before calling the method
 // ...
 
 // Call the method being tested
-create_model<16>(preRound, postRound, mNum, halfNum, window_size, inputDiff, allState, intermediate,
+create_model<16>(preRound, postRound, mNum, halfNum, window_size,  allState, intermediate,
         probs, totalProb, e1Prob, cp_model);
 
 
-//int window_size = -1;
-//searchT<16>(4, 4, 0, 16, 2, 2, window_size);
+BoolVec left_0_round = allState[0][0];
+BoolVec right_0_round = allState[0][1];
+std::vector<int> binary_left_0= {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0};
+std::vector<int> binary_right_0 = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0};
+mapBoolVecToBinary(left_0_round, binary_left_0, cp_model);
+mapBoolVecToBinary(right_0_round, binary_right_0, cp_model);
+
 BoolVec left_5_round = allState[5][0];
 BoolVec right_5_round = allState[5][1];
 std::vector<int> binary_left_5 = {0, 0, 0, 0, 1,0,1,0,0,0,0,0,0,1,0,0};
 std::vector<int> binary_right_5 = {0, 0, 0, 0, 1,0,0,0,0,0,0,0,0,1,0,0};
 mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
 mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);
-json result = search<16>(cp_model, 4, 4, 0, 16, -1, inputDiff, allState, intermediate, probs, totalProb, e1Prob);
+json result = search<16>(cp_model, 4, 4, 0, 16, -1,  allState, intermediate, probs, totalProb, e1Prob);
 printf("%s", result["E1"]["inputDiff"].dump().c_str());
-
-
 REQUIRE ( strcmp(result["E1"]["inputDiff"].dump().c_str(), "\"00101000000000000000000000010000\"") == 0);
 }
 

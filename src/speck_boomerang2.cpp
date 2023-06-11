@@ -2707,21 +2707,17 @@ static void addSwitchM(
 template<int branchSize>
     CpModelBuilder
     speck_boomerang2::create_model(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
-                 std::array<BoolVec, 2> &inputDiff, std::vector <std::array<BoolVec, 2>> &allState,
+                 std::vector <std::array<BoolVec, 2>> &allState,
                  std::vector <BoolVec> &intermediate,
                  std::vector <IntVar> &probs, IntVar &totalProb, IntVar &e1Prob, CpModelBuilder &cp_model) {
-        allState.push_back(inputDiff);
+        //allState.push_back(inputDiff);
+        allState.push_back({NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
 
         std::vector <BoolVar> inputBits;
-        for (int i = 0; i < 2; ++i)
+        /*for (int i = 0; i < 2; ++i)
             for (int j = 0; j < branchSize; ++j)
-                inputBits.push_back(inputDiff[i][j]);
+                inputBits.push_back(inputDiff[i][j]);*/
         cp_model.AddBoolOr(inputBits);
-        //cp_model.AddEquality(inputDiff[0][11], 1);
-        //cp_model.AddEquality(inputDiff[0][13], 1);
-        //cp_model.AddEquality(inputDiff[1][4], 1);
-        //cp_model.AddEquality(LinearExpr::Sum(inputDiff[0]), 2);
-        //cp_model.AddEquality(LinearExpr::Sum(inputDiff[1]), 1);
 
 
         for (int i = 1; i <= preRound; ++i) {
@@ -2775,7 +2771,7 @@ template<int branchSize>
 
 template<int branchSize>
 json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
-            std::array<BoolVec, 2> &inputDiff, std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
+            std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
             std::vector<IntVar> &probs, IntVar &totalProb, IntVar &e1Prob)
 {
     SatParameters parameters;
@@ -2800,7 +2796,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         std::vector<int> tmp;
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < branchSize; ++j) {
-                tmp.push_back(SolutionIntegerValue(response, inputDiff[i][j]));
+                tmp.push_back(SolutionIntegerValue(response, allState[0][i][j]));
             }
         }
         log_string["E1"]["inputDiff"] = vectorToString(tmp);
@@ -3275,12 +3271,11 @@ int speck_boomerang2::searchT(const int preRound, const int postRound, const int
 }*/
 template
 CpModelBuilder
-speck_boomerang2::create_model<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
-             std::array<BoolVec, 2> &inputDiff, std::vector <std::array<BoolVec, 2>> &allState,
+speck_boomerang2::create_model<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size, std::vector <std::array<BoolVec, 2>> &allState,
              std::vector <BoolVec> &intermediate,
              std::vector <IntVar> &probs, IntVar &totalProb, IntVar &e1Prob, CpModelBuilder &cp_model);
 
 template
 json speck_boomerang2::search<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
-                                                          std::array<BoolVec, 2> &inputDiff, std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
+                                                         std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
                                                           std::vector<IntVar> &probs, IntVar &totalProb, IntVar &e1Prob);

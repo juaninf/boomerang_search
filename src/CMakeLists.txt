@@ -34,10 +34,3 @@ target_link_libraries(lea_boomerang_enum ortools::ortools)
 
 add_executable(testrun test.cpp)
 target_link_libraries(testrun absl::numeric ortools::ortools nlohmann_json::nlohmann_json Catch2::Catch2WithMain speck_boomerang22)
-
-
-
-target_link_libraries(unit_tests
-        Catch2::Catch2WithMain
-        hello
-        )
