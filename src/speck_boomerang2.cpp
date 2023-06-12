@@ -3263,3 +3263,14 @@ template
 json speck_boomerang2::search<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                                          std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
                                                           std::vector<IntVar> &probs);
+
+template
+CpModelBuilder
+speck_boomerang2::create_model<24>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size, std::vector <std::array<BoolVec, 2>> &allState,
+                                   std::vector <BoolVec> &intermediate,
+                                   std::vector <IntVar> &probs, CpModelBuilder &cp_model);
+
+template
+json speck_boomerang2::search<24>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                  std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
+                                  std::vector<IntVar> &probs);
