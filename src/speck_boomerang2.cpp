@@ -2941,9 +2941,11 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         log_string["ortools_wall_time"] = response.wall_time();
         std::string experiment_id = uuid::generate_uuid_v4();
         log_string["experiment_id"] = experiment_id;
+        float ubct_prob = 2*branchSize-log_string["LBCT_entry"]["log2"].get<float>();
+        float lbct_prob = 2*branchSize-log_string["UBCT_entry"]["log2"].get<float>();
+        float ubct_lbct_log2_prob = ubct_prob + lbct_prob;
+        log_string["distinguisher_probability_with_bct_without_enum"] = total_prob_weight + ubct_lbct_log2_prob;
         std::cout << log_string.dump() << std::endl;
-
-        write_string_to_file(log_string.dump(), experiment_id);
     }
     print_states(allState, branchSize, response);
     return log_string;
@@ -3171,7 +3173,7 @@ int speck_boomerang2::searchT(const int preRound, const int postRound, const int
     return 200;
 }
 
-/*void running_time_single_key_scenario(){
+void running_time_single_key_scenario(){
      int speck_versions[5] = {32, 48, 64, 96, 128};
      int number_rounds_per_speck_version[5][10] = {
             {1, 2, 3, 4, 5, 6, 0, 0, 0, 0 },
@@ -3191,21 +3193,38 @@ int speck_boomerang2::searchT(const int preRound, const int postRound, const int
                     const int top_number_of_rounds = number_rounds_per_speck_version[i][j];
                     const int bottom_number_of_rounds = top_number_of_rounds;
                     switch (half_block_size) {
-                        case 16:
-                            search<16>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
-                            break;
-                        case 24:
-                            search<24>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
-                            break;
-                        case 32:
-                            search<32>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
-                            break;
-                        case 48:
-                            search<48>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
-                            break;
-                        case 64:
-                            search<64>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
-                            break;
+                        case 16: {
+                            const int mNum = 0;
+                            std::vector<std::array<BoolVec, 2>> allState;
+                            std::vector<BoolVec> intermediate;
+                            std::vector<IntVar> probs;
+                            CpModelBuilder cp_model;
+                            create_model<16>(top_number_of_rounds, bottom_number_of_rounds, mNum, half_block_size, window_size,  allState, intermediate,
+                                             probs, cp_model);
+                            json result = search<16>(cp_model, top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size,  allState, intermediate, probs);
+                            write_string_to_file(result.dump(), result["experiment_id"]);
+                        } break;
+                        case 24: {
+                            const int mNum = 0;
+                            std::vector<std::array<BoolVec, 2>> allState;
+                            std::vector<BoolVec> intermediate;
+                            std::vector<IntVar> probs;
+                            CpModelBuilder cp_model;
+                            create_model<24>(top_number_of_rounds, bottom_number_of_rounds, mNum, half_block_size, window_size,  allState, intermediate,
+                                             probs, cp_model);
+                            json result = search<24>(cp_model, top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size,  allState, intermediate, probs);
+                            write_string_to_file(result.dump(), result["experiment_id"]);
+                            printf("Nothing");
+                        } break;
+                            /*case 32:
+                                search<32>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                                break;
+                            case 48:
+                                search<48>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                                break;
+                            case 64:
+                                search<64>(top_number_of_rounds, bottom_number_of_rounds, 0, half_block_size, window_size);
+                                break;*/
                         default:
                             printf("Speck version does not exists");
                             exit(-1);
@@ -3215,44 +3234,15 @@ int speck_boomerang2::searchT(const int preRound, const int postRound, const int
             }
         }
     }
-}*/
+}
 
-/*int main()
+int main()
 {
-    int preRound = 4;
-    int postRound = 4;
-    const int branchSize = 16;
-    CpModelBuilder cp_model;
 
-    std::vector< BoolVec > intermediate;
-     int blockSize = 2 * branchSize;
-    auto totalProb = cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
-    std::array<BoolVec, 2> inputDiff = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
-    std::vector< std::array<BoolVec, 2> > allState;
-    std::vector<IntVar> probs; // apparently they model the probabilities as pr = \neg x; this is why it is necessary to do branch_size - 1 - x
-    IntVar e1Prob = cp_model.NewIntVar(Domain(0, preRound * (branchSize - 1)));
-    create_model<32 / 2>(4, 4, 0, 16, -1, inputDiff, allState, intermediate, probs, totalProb, e1Prob, cp_model);
-
-    BoolVec left_0_round = allState[0][0];
-    BoolVec right_0_round = allState[0][1];
-    std::vector<int> binary_left_0= {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0};
-    std::vector<int> binary_right_0 = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0};
-    mapBoolVecToBinary(left_0_round, binary_left_0, cp_model);
-    mapBoolVecToBinary(right_0_round, binary_right_0, cp_model);
-
-
-    BoolVec left_5_round = allState[5][0];
-    BoolVec right_5_round = allState[5][1];
-    std::vector<int> binary_left_5 = {0, 0, 0, 0, 1,0,1,0,0,0,0,0,0,1,0,0};
-    std::vector<int> binary_right_5 = {0, 0, 0, 0, 1,0,0,0,0,0,0,0,0,1,0,0};
-    mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
-    mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);
-    search<32 / 2>(cp_model, 4, 4, 0, 16, -1, inputDiff, allState, intermediate, probs, totalProb, e1Prob);
-
-    //running_time_single_key_scenario();
+    running_time_single_key_scenario();
     //search<48 / 2>(5, 5, 0, 24, 0);
     return 0;
-}*/
+}
 template
 CpModelBuilder
 speck_boomerang2::create_model<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size, std::vector <std::array<BoolVec, 2>> &allState,
