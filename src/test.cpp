@@ -3,7 +3,7 @@
 #include "bct_entry.hpp"
 #include "ortools_extend_sat.h"
 #include "window_size_util.h"
-#include "speck_boomerang2.h"
+#include "speck_boomerang.h"
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 

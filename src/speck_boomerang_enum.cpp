@@ -3126,13 +3126,13 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
 
 int main()
 {
-    //searchM_no_fix<32 / 2, 1>(4, 4, 0, 8, 10);
+    searchM_no_fix<32 / 2, 1>(4, 4, 0, 8, 10);
 
-    searchM<32 / 2, 8>(4, 4, 0, 32,
+    /*searchM<32 / 2, 8>(4, 4, 0, 32,
         { 0b0010100000000000, 0b0000000000010000 },
         { 0b1000000100000010, 0b1000000100001000 },
         10
-    ); // 29.1564 (the probability increased because of the increment of the precision)
+    );*/ // 29.1564 (the probability increased because of the increment of the precision)
 
     //searchM_no_fix<48 / 2, 1>(5, 5, 0, 12, 20);
 
