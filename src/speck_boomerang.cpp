@@ -1,6 +1,7 @@
 #include "bct_entry.hpp"
 #include "speck_boomerang.h"
 #include "window_size_util.h"
+#include "util.h"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -8,7 +9,7 @@
 #include <algorithm>
 
 using namespace speck_boomerang2;
-
+using namespace util;
 
 static std::vector< BoolVar > interBits;
 
@@ -18,99 +19,6 @@ template<int branchSize>
 template<int branchSize>
  int getBeta() { return branchSize == 16 ? 2 : 3; }
 
-std::string speck_boomerang2::vectorToString(const std::vector<int>& vec) {
-    std::string result;
-    result.reserve(vec.size());
-
-    int halfSize = vec.size() / 2;
-
-    // Reverse the first half
-    for (int i = halfSize - 1; i >= 0; i--) {
-        result.push_back(static_cast<char>('0' + vec[i]));
-    }
-
-    // Reverse the second half
-    for (int i = vec.size() - 1; i >= halfSize; i--) {
-        result.push_back(static_cast<char>('0' + vec[i]));
-    }
-
-    return result;
-}
-
-void speck_boomerang2::write_string_to_file(std::string string_to_write, std::string experiment_id) {
-    std::fstream file;
-    file.open(experiment_id+".json", std::ios_base::app);
-
-    if (!file.is_open()) {
-        cout << "Unable to open the file.\n";
-        return;
-    }
-
-    file << string_to_write + "\n";
-
-    file.close();
-}
-
-std::string speck_boomerang2::binaryToHex(const std::string& binaryString, int bit_size) {
-    std::bitset<256> bits(binaryString);  // Assuming 256-bit binary string, adjust the size as needed
-    std::stringstream hexStream;
-    hexStream << std::hex << std::setw((bit_size + 3) / 4) << std::setfill('0') << bits.to_ulong();
-    return hexStream.str();
-}
-
-void speck_boomerang2::print_states(std::vector< std::array<BoolVec, 2> > allState, int branch_size, operations_research::sat::CpSolverResponse response) {
-
-    for (int k = 0; k < allState.size(); k++) {
-        std::vector<int> tmp;
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < branch_size; j++)
-                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
-        cout<<binaryToHex(vectorToString(tmp), 2*branch_size)<<endl;
-    }
-}
-
-
-void speck_boomerang2::mapBoolVecToBinary(const BoolVec& boolvec, const std::vector<int>& binary, operations_research::sat::CpModelBuilder& cp_model) {
-    int n = boolvec.size();
-
-    for (int i = 0; i < n; i++) {
-        cp_model.AddEquality(boolvec[n - i - 1], binary[i]);
-    }
-}
-
-namespace uuid {
-    static std::random_device              rd;
-    static std::mt19937                    gen(rd());
-    static std::uniform_int_distribution<> dis(0, 15);
-    static std::uniform_int_distribution<> dis2(8, 11);
-
-    std::string generate_uuid_v4() {
-        std::stringstream ss;
-        int i;
-        ss << std::hex;
-        for (i = 0; i < 8; i++) {
-            ss << dis(gen);
-        }
-        ss << "-";
-        for (i = 0; i < 4; i++) {
-            ss << dis(gen);
-        }
-        ss << "-4";
-        for (i = 0; i < 3; i++) {
-            ss << dis(gen);
-        }
-        ss << "-";
-        ss << dis2(gen);
-        for (i = 0; i < 3; i++) {
-            ss << dis(gen);
-        }
-        ss << "-";
-        for (i = 0; i < 12; i++) {
-            ss << dis(gen);
-        };
-        return ss.str();
-    }
-}
 
 static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
 {
@@ -2827,7 +2735,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
             dnlrv[i] = 0;
             for (int j = 0; j < branchSize; ++j) {
                 const unsigned int bit = SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]);
-                //cout << bit;
+                cout << "BitL"<<bit<<endl;
                 ubct_log = ubct_log + std::to_string(bit);
                 dnlrv[i] = (dnlrv[i] << 1) + (bit&1);
             }
@@ -2838,11 +2746,12 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
 
         if (branchSize < 64 / 2) {
             const auto ubct_entryv = ubct_entry(dnlrv[0], dnlrv[1], dnlrv[2], dnlrv[3], dnlrv[4], branchSize);
-            //cout << ubct_entryv << " = 2^{" << log2(ubct_entryv) << "}" << endl;
+
             log_string["UBCT_entry"]["raw"] = ubct_entryv;
             log_string["UBCT_entry"]["log2"] = log2(ubct_entryv);
         } else {
             const auto ubct_prob = ubct_entry128(dnlrv[0], dnlrv[1], dnlrv[2], dnlrv[3], dnlrv[4], branchSize);
+            cout << ubct_prob << " = 2^{" << log2(0) << "}" << ubct_prob << endl;
             log_string["UBCT_entry"]["raw"] = ubct_prob;
             log_string["UBCT_entry"]["log2"] = log2(ubct_prob);
             //cout << ubct_prob << " = 2^{" << log2(ubct_prob) << "}" << endl;
@@ -2942,14 +2851,14 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
 
         log_string["distinguisher_probability_without_bct"] = total_prob_weight;
         log_string["ortools_wall_time"] = response.wall_time();
-        std::string experiment_id = uuid::generate_uuid_v4();
+        std::string experiment_id = generate_uuid_v4();
         log_string["experiment_id"] = experiment_id;
         float ubct_prob = 2*branchSize-log_string["LBCT_entry"]["log2"].get<float>();
         float lbct_prob = 2*branchSize-log_string["UBCT_entry"]["log2"].get<float>();
         float ubct_lbct_log2_prob = ubct_prob + lbct_prob;
         log_string["distinguisher_probability_with_bct_without_enum"] = total_prob_weight + ubct_lbct_log2_prob;
         log_string["total_rounds"] = preRound+postRound+2;
-        std::cout << log_string.dump() << std::endl;
+        //std::cout << log_string.dump() << std::endl;
     }
     //print_states(allState, branchSize, response);
     return log_string;

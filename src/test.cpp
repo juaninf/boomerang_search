@@ -3,6 +3,7 @@
 #include "bct_entry.hpp"
 #include "ortools_extend_sat.h"
 #include "window_size_util.h"
+#include "util.h"
 #include "speck_boomerang.h"
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -13,7 +14,7 @@
 #include <array>
 #include <string.h>
 
-
+using namespace util;
 using namespace speck_boomerang2;
 
 using namespace operations_research;

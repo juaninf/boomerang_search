@@ -22,21 +22,6 @@ using std::endl;
 
 namespace speck_boomerang2 {
 
-
-    void write_string_to_file(std::string string_to_write, std::string experiment_id);
-
-    std::string vectorToString(const std::vector<int> &vec);
-
-    std::string binaryToHex(const std::string &binaryString, int bit_size);
-
-    void print_states(std::vector <std::array<BoolVec, 2>> allState, int branch_size,
-                      operations_research::sat::CpSolverResponse response);
-
-
-    void mapBoolVecToBinary(const BoolVec &boolvec, const std::vector<int> &binary,
-                            operations_research::sat::CpModelBuilder &cp_model);
-
-
     template<int branchSize>
     json search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum,
                 int window_size, std::vector <std::array<BoolVec, 2>> &allState,

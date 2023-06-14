@@ -2,6 +2,7 @@
 #include "ortools_extend_sat.h"
 #include "window_size_util.h"
 #include "speck_boomerang.h"
+#include "util.h"
 
 #include <iostream>
 #include <iomanip>
@@ -9,7 +10,7 @@
 #include <array>
 #include <string.h>
 
-
+using namespace util;
 using namespace speck_boomerang2;
 
 using namespace operations_research;
