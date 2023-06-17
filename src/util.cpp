@@ -72,11 +72,31 @@ void util::write_string_to_file(std::string string_to_write, std::string experim
 }
 
 std::string util::binaryToHex(const std::string& binaryString, int bit_size) {
-    std::bitset<256> bits(binaryString);  // Assuming 256-bit binary string, adjust the size as needed
+    int num_bits = (bit_size + 3) / 4 * 4;  // Round up to the nearest multiple of 4 bits
+    int num_bytes = (num_bits + 7) / 8;  // Calculate the number of bytes required
+
+    std::vector<unsigned char> bytes(num_bytes, 0);  // Create a vector to hold the bytes
+
+    // Convert each byte from the binary string to an unsigned char
+    for (int i = 0; i < num_bytes; ++i) {
+        for (int j = 0; j < 8 && (i * 8 + j) < bit_size; ++j) {
+            if (binaryString[i * 8 + j] == '1') {
+                bytes[i] |= (1 << (7 - j));
+            }
+        }
+    }
+
     std::stringstream hexStream;
-    hexStream << std::hex << std::setw((bit_size + 3) / 4) << std::setfill('0') << bits.to_ulong();
+    hexStream << std::hex << std::setw((num_bits + 3) / 4) << std::setfill('0');
+
+    // Convert each byte to its hex representation and append to the hex string
+    for (int i = 0; i < num_bytes; ++i) {
+        hexStream << std::setw(2) << static_cast<int>(bytes[i]);
+    }
+
     return hexStream.str();
 }
+
 
 void util::print_states(std::vector< std::array<BoolVec, 2> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
 
@@ -89,6 +109,8 @@ void util::print_states(std::vector< std::array<BoolVec, 2> > allState, int bran
     }
 }
 
+
+
 void util::print_states(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
 
     for (int k = 0; k < allState.size(); k++) {
@@ -98,6 +120,19 @@ void util::print_states(std::vector< std::array<BoolVec, 3> > allState, int bran
                 tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
         cout<<binaryToHex(vectorToString(tmp, 3), m*branch_size)<<endl;
     }
+}
+
+std::vector<std::string> util::states_to_vector_hex_string(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
+    std::vector<std::string> vector_hex_string;
+
+    for (int k = 0; k < allState.size(); k++) {
+        std::vector<int> tmp;
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < branch_size; j++)
+                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
+        vector_hex_string.push_back(binaryToHex(vectorToString(tmp, 3), m*branch_size));
+    }
+    return vector_hex_string;
 }
 
 void util::print_states(std::vector< std::array<BoolVec, 4> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {

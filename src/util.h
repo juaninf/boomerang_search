@@ -41,7 +41,10 @@ namespace util {
                       int branch_size, operations_research::sat::CpSolverResponse
                       response, int m);
 
-    void mapBoolVecToBinary(const BoolVec &boolvec, const std::vector<int> &binary,
+
+    std::vector<std::string> states_to_vector_hex_string(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m);
+
+        void mapBoolVecToBinary(const BoolVec &boolvec, const std::vector<int> &binary,
                                               operations_research::sat::CpModelBuilder &cp_model);
     std::string generate_uuid_v4();
 

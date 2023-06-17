@@ -2477,9 +2477,6 @@ static void addRoundInternalStructureXorSubKey(CpModelBuilder &model, std::array
     BVRol(model, afterBeta, state[1], beta);
     BVXor(model, output[0], afterBeta, output[1]);
 
-    //for (int i = 0; i < branchSize; ++i)
-    //    model.AddEquality(afterAddition[i], output[0][i]);
-
     return;
 }
 
@@ -2494,7 +2491,7 @@ static void addRound_related_key(CpModelBuilder &model, std::array<BoolVec, 3> &
     if (round == 1) {
         cout << "Round 1" << endl;
         addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , state[0], window_size);
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < branchSize; i++) {
             model.AddEquality(output[0][i], state[0][i]); // constraint
         }
     } else {
@@ -2644,44 +2641,22 @@ CpModelBuilder
 speck_boomerang2::create_model_related_key(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                std::vector <std::array<BoolVec, 3>> &allState, std::vector<BoolVec> &key_state,
                                std::vector <BoolVec> &intermediate,
-                               std::vector <std::array<IntVar, 2>> &probs, CpModelBuilder &cp_model) {
+                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model) {
 
-    // Init of key_state
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    key_state.push_back(NewBoolVec(cp_model, branchSize));
-    //std::reverse(key_state.begin(), key_state.end());
-
-    // Adding vars for the input difference
+    for (int i=0; i < key_size/branchSize + preRound - 1; i++)
+        key_state.push_back(NewBoolVec(cp_model, branchSize));
     allState.push_back({key_state[0], NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
-    // two last elements of key_state are equal to the key_state
-    //BVAddEqualConstraint(cp_model, key_state[2], allState[0][0]);
-    //BVAddEqualConstraint(cp_model, key_state[3], allState[0][1]);
-    //allState[0][1]
-    //key_state[3]}
-
-
     std::vector <BoolVar> inputBits;
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < branchSize; ++j)
             inputBits.push_back(allState[0][i][j]);
     cp_model.AddBoolOr(inputBits);
-
-   for (int i = 1; i <= preRound; ++i) {
+    for (int i = 1; i <= preRound; ++i) {
         std::array<BoolVec, 3> state = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
         allState.push_back(state);
         std::array<IntVar, 2> prob = {cp_model.NewIntVar(Domain(0, branchSize - 1)), cp_model.NewIntVar(Domain(0, branchSize - 1))};
         probs.push_back(prob);
-
         addRound_related_key<branchSize>(cp_model, allState[i - 1], state, prob, window_size, key_state, i);
-
-
     }
 
     /*std::array<BoolVec, 2> switchState = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
@@ -2777,8 +2752,12 @@ json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int pr
     const auto response = SolveWithParameters(model_built, parameters);
     const auto status = response.status();
     cout << "print_state related_key: " << status << endl;
-    print_states(allState, branchSize, response, 4);
+    print_states(allState, branchSize, response, 3);
+
+
+
     json log_string;
+    log_string["states"] = states_to_vector_hex_string(allState, branchSize, response, 3);
     return log_string;
 }
 
@@ -3220,16 +3199,18 @@ json speck_boomerang2::search<16>(CpModelBuilder &cp_model, const int preRound, 
                                                           std::vector<IntVar> &probs);
 
 template
-json speck_boomerang2::search_related_key<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
-                                  std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
-                                              std::vector <std::array<IntVar, 2>> &probs);
-
-template
 CpModelBuilder
 speck_boomerang2::create_model_related_key<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                          std::vector <std::array<BoolVec, 3>> &allState,  std::vector<BoolVec> &key_state,
                          std::vector <BoolVec> &intermediate,
-                         std::vector <std::array<IntVar, 2>> &probs, CpModelBuilder &cp_model);
+                         std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model);
+
+template
+CpModelBuilder
+speck_boomerang2::create_model_related_key<24>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                               std::vector <std::array<BoolVec, 3>> &allState,  std::vector<BoolVec> &key_state,
+                                               std::vector <BoolVec> &intermediate,
+                                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model);
 
 template
 CpModelBuilder
@@ -3274,3 +3255,13 @@ template
 json speck_boomerang2::search<64>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                   std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
                                   std::vector<IntVar> &probs);
+
+template
+json speck_boomerang2::search_related_key<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                              std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
+                                              std::vector <std::array<IntVar, 2>> &probs);
+
+template
+json speck_boomerang2::search_related_key<24>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                              std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
+                                              std::vector <std::array<IntVar, 2>> &probs);
