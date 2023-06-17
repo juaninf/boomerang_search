@@ -23,7 +23,7 @@ constexpr int blockSize = 4 * branchSize;
 static std::vector< BoolVec > intermediate;
 static std::vector< BoolVar > interBits;
 
-static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
+/* void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
 {
     const int len = bv0.size();
     const int rn = rotation % len;
@@ -45,7 +45,7 @@ static void BVRol(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const in
     BVRor(model, output, bv0, len - rn);
 
     return;
-} 
+} */
 
 void printm(const std::vector<int> &state)
 {

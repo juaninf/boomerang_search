@@ -2,7 +2,7 @@
 
 
 using namespace util;
-std::string util::vectorToString(const std::vector<int>& vec) {
+/*std::string util::vectorToString(const std::vector<int>& vec) {
     std::string result;
     result.reserve(vec.size());
 
@@ -17,6 +17,42 @@ std::string util::vectorToString(const std::vector<int>& vec) {
     for (int i = vec.size() - 1; i >= halfSize; i--) {
         result.push_back(static_cast<char>('0' + vec[i]));
     }
+
+    return result;
+}*/
+/*
+using namespace util;
+std::string util::vectorToString(const std::vector<int>& vec, int m) {
+    std::string result;
+    result.reserve(vec.size());
+    cout << "m is:" << m << endl;
+    int halfSize = vec.size() / m;
+
+    // Reverse the first half
+    for (int i = halfSize - 1; i >= 0; i--) {
+        result.push_back(static_cast<char>('0' + vec[i]));
+    }
+
+    // Reverse the second half
+    for (int i = vec.size() - 1; i >= halfSize; i--) {
+        result.push_back(static_cast<char>('0' + vec[i]));
+    }
+
+    return result;
+}*/
+
+using namespace util;
+std::string util::vectorToString(const std::vector<int>& vec, int m) {
+    std::string result;
+    result.reserve(vec.size());
+
+    int wordSize = vec.size() / m;
+
+    // Reverse the first half
+    for (int j = 1; j <= m; j++)
+        for (int i = j*wordSize - 1; i >= (j-1)*wordSize; i--) {
+            result.push_back(static_cast<char>('0' + vec[i]));
+        }
 
     return result;
 }
@@ -42,16 +78,39 @@ std::string util::binaryToHex(const std::string& binaryString, int bit_size) {
     return hexStream.str();
 }
 
-void util::print_states(std::vector< std::array<BoolVec, 2> > allState, int branch_size, operations_research::sat::CpSolverResponse response) {
+void util::print_states(std::vector< std::array<BoolVec, 2> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
 
     for (int k = 0; k < allState.size(); k++) {
         std::vector<int> tmp;
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < branch_size; j++)
                 tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
-        cout<<binaryToHex(vectorToString(tmp), 2*branch_size)<<endl;
+        cout<<binaryToHex(vectorToString(tmp, 2), m*branch_size)<<endl;
     }
 }
+
+void util::print_states(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
+
+    for (int k = 0; k < allState.size(); k++) {
+        std::vector<int> tmp;
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < branch_size; j++)
+                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
+        cout<<binaryToHex(vectorToString(tmp, 3), m*branch_size)<<endl;
+    }
+}
+
+void util::print_states(std::vector< std::array<BoolVec, 4> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
+    for (int k = 0; k < allState.size(); k++) {
+        std::vector<int> tmp;
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < branch_size; j++)
+                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
+        cout<<binaryToHex(vectorToString(tmp, 4), m*branch_size)<<endl;
+    }
+}
+
+
 
 
 void util::mapBoolVecToBinary(const BoolVec& boolvec, const std::vector<int>& binary, operations_research::sat::CpModelBuilder& cp_model) {

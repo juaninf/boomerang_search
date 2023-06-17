@@ -62,6 +62,20 @@ void BVAssign(sat::CpModelBuilder &model, BoolVec &bv, const std::vector<std::ve
     return;
 }
 
+void BVAddEqualConstraint(sat::CpModelBuilder &model, BoolVec &bv0, BoolVec &bv1)
+{
+    /*
+     * bv0 = bv1
+     */
+    const int len = bv0.size();
+
+    for (int i = 0; i < len; ++i) {
+        model.AddEquality(bv0[i], bv1[i]);
+    }
+
+    return;
+}
+
 BoolVec BVXor(sat::CpModelBuilder &model, BoolVec &bv0, BoolVec &bv1)
 {
     const int len = bv0.size();
@@ -72,4 +86,28 @@ BoolVec BVXor(sat::CpModelBuilder &model, BoolVec &bv0, BoolVec &bv1)
     }
 
     return bv2;
+}
+
+void BVRor(sat::CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
+{
+    const int len = bv0.size();
+    const int rn = rotation % len;
+
+    for (int i = rn; i < len; ++i) {
+        model.AddEquality(output[i - rn], bv0[i]);
+    }
+    for (int i = 0; i < rn; ++i) {
+        model.AddEquality(output[i + (len - rn)], bv0[i]);
+    }
+
+    return;
+}
+
+void BVRol(sat::CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
+{
+    const int len = bv0.size();
+    const int rn = rotation % len;
+    BVRor(model, output, bv0, len - rn);
+
+    return;
 }

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_CXX_STANDARD 17)
-set(COMPILER_FLAGS "-Wall --std=c++17 -march=native -funroll-loops")
+set(COMPILER_FLAGS " -g -O0 -Wall --std=c++17 -march=native -funroll-loops")
 #set(LINKER_FLAGS "-static-libstdc++ -static-libgcc")
 set(LINKER_FLAGS "-static-libstdc++")
 set(CMAKE_CXX_FLAGS "${COMPILER_FLAGS}")

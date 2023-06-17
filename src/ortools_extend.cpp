@@ -45,6 +45,7 @@ void BVXor(sat::CpModelBuilder &model, BoolVec &bv0, BoolVec &bv1, BoolVec &bv2)
     return;
 }
 
+
 void BVAssignIf(sat::CpModelBuilder &model, BoolVec &bv, const std::vector<std::vector<int64_t>> &values, sat::IntVar b)
 {
     auto iv = BV2IV(bv);

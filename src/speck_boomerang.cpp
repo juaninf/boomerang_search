@@ -20,30 +20,6 @@ template<int branchSize>
  int getBeta() { return branchSize == 16 ? 2 : 3; }
 
 
-static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
-{
-    const int len = bv0.size();
-    const int rn = rotation % len;
-
-    for (int i = rn; i < len; ++i) {
-        model.AddEquality(output[i - rn], bv0[i]);
-    }
-    for (int i = 0; i < rn; ++i) {
-        model.AddEquality(output[i + (len - rn)], bv0[i]);
-    }
-
-    return;
-} 
-
-static void BVRol(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
-{
-    const int len = bv0.size();
-    const int rn = rotation % len;
-    BVRor(model, output, bv0, len - rn);
-
-    return;
-}
-
 template<int branchSize>
 static void printm(const std::vector<int> &state)
 {
@@ -2484,6 +2460,56 @@ static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::
 }
 
 template<int branchSize>
+static void addRoundInternalStructureXorSubKey(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::array<BoolVec, 2> &output, IntVar &prob, BoolVec &subkey, int window_size)
+{
+    int alpha = getAlpha<branchSize>();
+    int beta = getBeta<branchSize>();
+
+    auto afterAlpha = NewBoolVec(model, branchSize);
+    auto afterBeta = NewBoolVec(model, branchSize);
+    auto afterAddition = NewBoolVec(model, branchSize);
+
+    BVRor(model, afterAlpha, state[0], alpha);
+    addAddition_SAT_MILP<branchSize>(model, afterAlpha, state[1], afterAddition, prob, window_size);
+
+    BVXor(model, afterAddition, subkey, output[0]);
+
+    BVRol(model, afterBeta, state[1], beta);
+    BVXor(model, output[0], afterBeta, output[1]);
+
+    //for (int i = 0; i < branchSize; ++i)
+    //    model.AddEquality(afterAddition[i], output[0][i]);
+
+    return;
+}
+
+template<int branchSize>
+static void addRound_related_key(CpModelBuilder &model, std::array<BoolVec, 3> &state, std::array<BoolVec, 3> &output, std::array<IntVar, 2> &prob, int window_size, std::vector<BoolVec> &key_state, int round)
+{
+    std::array<BoolVec, 2> input_internal_structure_round = {state[1], state[2]};
+    std::array<BoolVec, 2> output_internal_structure_round = {output[1], output[2]};
+
+    auto prob_key_schedule = prob[0];
+    auto prob_internal_structure = prob[1];
+    if (round == 1) {
+        cout << "Round 1" << endl;
+        addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , state[0], window_size);
+        for (int i = 0; i < 16; i++) {
+            model.AddEquality(output[0][i], state[0][i]); // constraint
+        }
+    } else {
+        std::array<BoolVec, 2> input_key_schedule_round = {key_state[round-1], state[0]};
+        std::array<BoolVec, 2> output_key_schedule_round = {key_state[round+2], output[0]};
+        addRound<branchSize>(model, input_key_schedule_round, output_key_schedule_round, prob_key_schedule, window_size);
+        addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , output_key_schedule_round[1], window_size);
+        key_state.push_back(output_key_schedule_round[0]);
+    }
+
+
+
+}
+
+template<int branchSize>
 static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, const int halfNum, std::vector< BoolVec > &intermediate)
 {
      int alpha = getAlpha<branchSize>();
@@ -2612,6 +2638,79 @@ static void addSwitchM(
     return;
 }
 
+
+template<int branchSize>
+CpModelBuilder
+speck_boomerang2::create_model_related_key(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                               std::vector <std::array<BoolVec, 3>> &allState, std::vector<BoolVec> &key_state,
+                               std::vector <BoolVec> &intermediate,
+                               std::vector <std::array<IntVar, 2>> &probs, CpModelBuilder &cp_model) {
+
+    // Init of key_state
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    key_state.push_back(NewBoolVec(cp_model, branchSize));
+    //std::reverse(key_state.begin(), key_state.end());
+
+    // Adding vars for the input difference
+    allState.push_back({key_state[0], NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
+    // two last elements of key_state are equal to the key_state
+    //BVAddEqualConstraint(cp_model, key_state[2], allState[0][0]);
+    //BVAddEqualConstraint(cp_model, key_state[3], allState[0][1]);
+    //allState[0][1]
+    //key_state[3]}
+
+
+    std::vector <BoolVar> inputBits;
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < branchSize; ++j)
+            inputBits.push_back(allState[0][i][j]);
+    cp_model.AddBoolOr(inputBits);
+
+   for (int i = 1; i <= preRound; ++i) {
+        std::array<BoolVec, 3> state = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
+        allState.push_back(state);
+        std::array<IntVar, 2> prob = {cp_model.NewIntVar(Domain(0, branchSize - 1)), cp_model.NewIntVar(Domain(0, branchSize - 1))};
+        probs.push_back(prob);
+
+        addRound_related_key<branchSize>(cp_model, allState[i - 1], state, prob, window_size, key_state, i);
+
+
+    }
+
+    /*std::array<BoolVec, 2> switchState = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
+    allState.push_back(switchState);
+    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum, intermediate);
+
+    for (int i = 1; i <= postRound; ++i) {
+        std::array<BoolVec, 2> state = {NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)};
+        allState.push_back(state);
+
+        auto prob = cp_model.NewIntVar(Domain(0, branchSize - 1));
+        probs.push_back(prob);
+
+        addRound<branchSize>(cp_model, allState[preRound + 1 + i - 1], state, prob, window_size);
+        cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 10));
+
+    }
+
+    std::vector <BoolVar> outputBits; // aparently never used
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < branchSize; ++j)
+            outputBits.push_back(allState[preRound + 1 + postRound][i][j]);
+    cp_model.AddBoolOr(outputBits);
+    //cp_model.AddEquality(totalProb, LinearExpr::Sum(probs));*/
+    cp_model.Maximize(LinearExpr::Sum(flatten2DArray(probs)));
+
+    return cp_model;
+}
+
 template<int branchSize>
     CpModelBuilder
     speck_boomerang2::create_model(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
@@ -2663,6 +2762,26 @@ template<int branchSize>
         return cp_model;
     }
 
+
+template<int branchSize>
+json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                              std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
+                                          std::vector <std::array<IntVar, 2>> &probs) {
+    SatParameters parameters;
+    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
+    parameters.set_num_search_workers(10);
+    parameters.set_log_search_progress(false);
+    auto model_built = cp_model.Build();
+
+    //const auto response = Solve(model_built);
+    const auto response = SolveWithParameters(model_built, parameters);
+    const auto status = response.status();
+    cout << "print_state related_key: " << status << endl;
+    print_states(allState, branchSize, response, 4);
+    json log_string;
+    return log_string;
+}
+
 template<int branchSize>
 json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
             std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
@@ -2693,7 +2812,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
                 tmp.push_back(SolutionIntegerValue(response, allState[0][i][j]));
             }
         }
-        log_string["E1"]["inputDiff"] = vectorToString(tmp);
+        log_string["E1"]["inputDiff"] = vectorToString(tmp, 2);
         // cout << "inputDiff: " << endl;
         // printm(tmp);
 
@@ -2704,7 +2823,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         }
         //cout << "E1 output diff: " << endl;
         //printm(tmp);
-        log_string["E1"]["outputDiff"] = vectorToString(tmp);
+        log_string["E1"]["outputDiff"] = vectorToString(tmp, 2);
 
         tmp.clear();
         for (int i = 0; i < 2; ++i) {
@@ -2713,7 +2832,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         }
         //cout << "E2 input diff: " << endl;
         //printm(tmp);
-        log_string["E2"]["inputDiff"] = vectorToString(tmp);
+        log_string["E2"]["inputDiff"] = vectorToString(tmp, 2);
 
 
         tmp.clear();
@@ -2723,7 +2842,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         }
         //cout << "outputDiff: " << endl;
         //printm(tmp);
-        log_string["E2"]["outputDiff"] = vectorToString(tmp);
+        log_string["E2"]["outputDiff"] = vectorToString(tmp, 2);
 
         unsigned long long int dnlrv[6];
 
@@ -2735,7 +2854,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
             dnlrv[i] = 0;
             for (int j = 0; j < branchSize; ++j) {
                 const unsigned int bit = SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]);
-                cout << "BitL"<<bit<<endl;
+                //cout << "BitL"<<bit<<endl;
                 ubct_log = ubct_log + std::to_string(bit);
                 dnlrv[i] = (dnlrv[i] << 1) + (bit&1);
             }
@@ -3099,6 +3218,18 @@ template
 json speck_boomerang2::search<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                                          std::vector< std::array<BoolVec, 2> > &allState, std::vector< BoolVec > &intermediate,
                                                           std::vector<IntVar> &probs);
+
+template
+json speck_boomerang2::search_related_key<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                  std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
+                                              std::vector <std::array<IntVar, 2>> &probs);
+
+template
+CpModelBuilder
+speck_boomerang2::create_model_related_key<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                         std::vector <std::array<BoolVec, 3>> &allState,  std::vector<BoolVec> &key_state,
+                         std::vector <BoolVec> &intermediate,
+                         std::vector <std::array<IntVar, 2>> &probs, CpModelBuilder &cp_model);
 
 template
 CpModelBuilder

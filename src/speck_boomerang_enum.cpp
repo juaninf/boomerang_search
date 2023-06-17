@@ -1,6 +1,7 @@
 #include "ortools_extend_sat.h"
 #include "bct_entry.hpp"
 #include "absl/container/flat_hash_map.h"
+#include "util.h"
 
 #include <iostream>
 #include <vector>
@@ -14,8 +15,9 @@ using std::endl;
 
 using namespace operations_research;
 using namespace operations_research::sat;
+using namespace util;
 
-static std::vector< BoolVec > intermediate;
+// static std::vector< BoolVec > intermediate;
 static std::vector< BoolVar > interBits;
 
 template<int branchSize>
@@ -24,7 +26,7 @@ constexpr int getAlpha() { return branchSize == 16 ? 7 : 8; }
 template<int branchSize>
 constexpr int getBeta() { return branchSize == 16 ? 2 : 3; }
 
-static void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
+/*void BVRor(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const int rotation)
 {
     const int len = bv0.size();
     const int rn = rotation % len;
@@ -46,7 +48,7 @@ static void BVRol(CpModelBuilder &model, BoolVec &output, BoolVec &bv0, const in
     BVRor(model, output, bv0, len - rn);
 
     return;
-} 
+} */
 
 template<int branchSize>
 static void printm(const std::vector<int> &state)
@@ -101,16 +103,18 @@ static void addAddition_SAT_MILP(CpModelBuilder &model, BoolVec &a, BoolVec &b, 
     model.AddBoolXor({ a[0], b[0], output[0], model.TrueVar() });
     for (int i = 0; i < branchSize - 1; ++i) {
         const int eqsSize = eqs.size();
-        auto isEqual = model.NewBoolVar();
-
+        auto isEqual = model.NewBoolVar().WithName("seee");
+        ////printf("isEqual index = %d\n", isEqual.index());
         for (int j = 0; j < eqsSize; ++j) {
             model.AddGreaterOrEqual(LinearExpr::WeightedSum({ a[i],      b[i],      output[i], a[i + 1],  b[i + 1],  output[i + 1], isEqual.Not() },
                                                                 { eqs[j][0], eqs[j][1], eqs[j][2], eqs[j][3], eqs[j][4], eqs[j][5],     eqs[j][6] }),
                                     eqs[j][7]);
         }
 
-        auto literal1 = model.NewBoolVar();
-        auto literal2 = model.NewBoolVar();
+        auto literal1 = model.NewBoolVar().WithName("seee");
+        ////printf("literal1115 index = %d\n", literal1.index());
+        auto literal2 = model.NewBoolVar().WithName("seee");
+        ////printf("literal2117 index = %d\n", literal2.index());
         //model.AddBoolAnd({ a[i - 1], b[i - 1], output[i - 1] }).OnlyEnforceIf(literal1);
         //model.AddBoolOr({ Not(a[i - 1]), Not(b[i - 1]), Not(output[i - 1]) }).OnlyEnforceIf(Not(literal1));
         //model.AddBoolAnd({ Not(a[i - 1]), Not(b[i - 1]), Not(output[i - 1]) }).OnlyEnforceIf(literal2);
@@ -288,11 +292,15 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
 
     for (int i = 0; i < branchSize; ++i)
         for (int j = 0; j < 4; ++j) {
-            dp[i][j] = model.NewBoolVar();
-            can0[i][j] = model.NewBoolVar();
+            dp[i][j] = model.NewBoolVar().WithName("seee");
+            // //printf("dp[i][j] index = %d\n", dp[i][j].index());
+            can0[i][j] = model.NewBoolVar().WithName("seee");
+            //printf("can0[i][j] index = %d\n", can0[i][j].index());
         }
-    for (int i = 0; i < branchSize; ++i)
-        isHalf[i] = model.NewBoolVar();
+    for (int i = 0; i < branchSize; ++i) {
+        isHalf[i] = model.NewBoolVar().WithName("seee");
+        //printf("isHalf[i] index = %d\n", isHalf[i].index());
+    }
     model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
 
     model.AddEquality(dp[0][0], model.TrueVar());
@@ -306,7 +314,8 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
     for (int i = 0; i < branchSize - 1; ++i) {
         auto matrix = NewBoolVec(model, 16);
         for (int cn = 0; cn < 4; ++cn) {
-            auto halfSize = model.NewBoolVar();
+            auto halfSize = model.NewBoolVar().WithName("seee");
+            //printf("halfSize index = %d\n", halfSize.index());
             std::vector<BoolVar> column;
             column.push_back(dL[i]);
             column.push_back(dR[i]);
@@ -320,7 +329,7 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
             BVAssign(model, column, table[cn]);
 
             std::array<BoolVar, 4> literals;
-            for (int li = 0; li < 4; ++li) literals[li] = model.NewBoolVar();
+            for (int li = 0; li < 4; ++li) literals[li] = model.NewBoolVar().WithName("seee"); //printf("literals[li] index = %d\n", literals[li].index());}
             for (int r = 0; r < 4; ++r) {
                 model.AddBoolAnd({ dp[i][cn], matrix[r * 4 + cn], can0[i + 1][r] }).OnlyEnforceIf(literals[r]);
                 model.AddBoolOr({ Not(dp[i][cn]), Not(matrix[r * 4 + cn]), Not(can0[i + 1][r]) }).OnlyEnforceIf(Not(literals[r]));
@@ -348,7 +357,8 @@ static void onlyLargeSwitch_BCT_new(CpModelBuilder &model, BoolVec &dL, BoolVec 
 
         std::array<BoolVar, 4> ifEnforced;
         for (int j = 0; j < 4; ++j) {
-            ifEnforced[j] = model.NewBoolVar();
+            ifEnforced[j] = model.NewBoolVar().WithName("seee");
+            //printf("ifEnforced[j] index = %d\n", ifEnforced[j].index());
             model.AddBoolAnd({ isHalf[i], can0[i][j] }).OnlyEnforceIf(ifEnforced[j]);
             model.AddBoolOr({ Not(isHalf[i]), Not(can0[i][j]) }).OnlyEnforceIf(Not(ifEnforced[j]));
             model.AddBoolOr({ ifEnforced[j], Not(dp[i][j]), matrix[j * 4 + j] });
@@ -474,10 +484,11 @@ static void onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec
 
     for (int i = 0; i < branchSize; ++i)
         for (int j = 0; j < 4; ++j) {
-            dp[i][j] = model.NewBoolVar();
+            dp[i][j] = model.NewBoolVar().WithName("seee");
+            //printf("dp[i][j]488 index = %d\n", dp[i][j].index());
         }
     //for (int i = 0; i < branchSize; ++i)
-    //    isHalf[i] = model.NewBoolVar();
+    //    isHalf[i] = model.NewBoolVar().WithName("seee");
     if constexpr (fixed) {
         auto halfSum = model.NewIntVar(Domain(0, branchSize - 1));
         model.AddLessOrEqual(halfSum, model.NewConstant(halfNum));
@@ -493,7 +504,8 @@ static void onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec
     for (int i = 0; i < branchSize - 1; ++i) {
         auto matrix = NewBoolVec(model, 16);
         for (int cn = 0; cn < 4; ++cn) {
-            auto halfSize = model.NewBoolVar();
+            auto halfSize = model.NewBoolVar().WithName("seee");
+            //printf("halfSize508 index = %d\n", halfSize.index());
             std::vector<BoolVar> column;
             column.push_back(dL[i]);
             column.push_back(dR[i]);
@@ -518,7 +530,8 @@ static void onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec
 
         */
 
-        auto ifEnforced = model.NewBoolVar();
+        auto ifEnforced = model.NewBoolVar().WithName("seee");
+        //printf("ifEnforced534 index = %d\n", ifEnforced.index());
         model.AddEquality(Not(isHalf[i]), ifEnforced);
         for (int j = 0; j < 4; ++j) {
             model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 4 + j] });
@@ -852,7 +865,8 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
 
     for (int i = 0; i < branchSize; ++i)
         for (int j = 0; j < 8; ++j) {
-            dp[i][j] = model.NewBoolVar();
+            dp[i][j] = model.NewBoolVar().WithName("seee");
+            //printf("dp[i][j]869 index = %d\n", dp[i][j].index()); // Here change juan
         }
 
     //for (int i = 0; i < 8; ++i) {
@@ -863,7 +877,7 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     //}
     
     //for (int i = 0; i < branchSize; ++i) {
-    //    isHalf[i] = model.NewBoolVar();
+    //    isHalf[i] = model.NewBoolVar().WithName("seee");
     //}
     if constexpr (fixed) {
         //model.AddEquality(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
@@ -885,8 +899,10 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     for (int i = 0; i < branchSize - 1; ++i) {
         auto matrix = NewBoolVec(model, 64);
         for (int cn = 0; cn < 8; ++cn) {
-            auto halfSize0 = model.NewBoolVar();
-            auto halfSize1 = model.NewBoolVar();
+            auto halfSize0 = model.NewBoolVar().WithName("seee");
+            //printf("halfSize0903 index = %d\n", halfSize0.index());
+            auto halfSize1 = model.NewBoolVar().WithName("seee");
+            //printf("halfSize1903 index = %d\n", halfSize1.index());
             std::vector<BoolVar> column;
             column.push_back(dL[i]);
             column.push_back(dR[i]);
@@ -917,7 +933,8 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
         ifEnforced and dp[i][j] == True  =>  matrix[j * 4 + j]
         */
 
-        auto ifEnforced = model.NewBoolVar();
+        auto ifEnforced = model.NewBoolVar().WithName("seee");
+        //printf("ifEnforced937 index = %d\n", ifEnforced.index());
         model.AddEquality(Not(isHalf[i]), ifEnforced);
         for (int j = 0; j < 8; ++j) {
             model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 8 + j] });
@@ -974,7 +991,7 @@ static void onlyLargeSwitch_LBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     isValid.push_back(nL[branchSize - 1]);
     isValid.push_back(nR[branchSize - 1]);
     isValid.push_back(nLL[branchSize - 1]);
-    for (int i = 0; i < 8; ++i) isValid.push_back(model.NewBoolVar());
+    for (int i = 0; i < 8; ++i) isValid.push_back(model.NewBoolVar().WithName("seee")); //printf("isValid[i]994 index = %d\n", isValid[i].index());}
     BVAssign(model, isValid, lastTable);
 
     auto lastLiterals = NewBoolVec(model, 8);
@@ -1137,7 +1154,8 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
 
     for (int i = 0; i < branchSize; ++i)
         for (int j = 0; j < 4; ++j) {
-            dp[i][j] = model.NewBoolVar();
+            dp[i][j] = model.NewBoolVar().WithName("seee");
+            //printf("dp[i][j]1158 index = %d\n", dp[i][j].index());
         }
     if constexpr (fixed) {
         auto halfSum = model.NewIntVar(Domain(0, branchSize - 1));
@@ -1154,7 +1172,8 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     for (int i = 0; i < branchSize - 1; ++i) {
         auto matrix = NewBoolVec(model, 16);
         for (int cn = 0; cn < 4; ++cn) {
-            auto halfSize = model.NewBoolVar();
+            auto halfSize = model.NewBoolVar().WithName("seee");
+            //printf("halfSize1175 index = %d\n", halfSize.index());
             std::vector<BoolVar> column;
             column.push_back(dL[i]);
             column.push_back(dR[i]);
@@ -1180,7 +1199,8 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
         ifEnforced and dp[i][j] == True  =>  matrix[j * 4 + j]
         */
 
-        auto ifEnforced = model.NewBoolVar();
+        auto ifEnforced = model.NewBoolVar().WithName("seee");
+        //printf("ifEnforced1203 index = %d\n", ifEnforced.index()); // here changejuan
         model.AddEquality(Not(isHalf[i]), ifEnforced);
         for (int j = 0; j < 4; ++j) {
             model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 4 + j] });
@@ -1225,7 +1245,7 @@ static void onlyLargeSwitch_UBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     isValid.push_back(dL[branchSize - 1]);
     isValid.push_back(dR[branchSize - 1]);
     isValid.push_back(dLL[branchSize - 1]);
-    for (int i = 0; i < 4; ++i) isValid.push_back(model.NewBoolVar());
+    for (int i = 0; i < 4; ++i) isValid.push_back(model.NewBoolVar().WithName("seee")); //printf("isValid1248 index = %d\n", isValid[i].index());};
     BVAssign(model, isValid, lastTable);
 
     auto lastLiterals = NewBoolVec(model, 4);
@@ -1827,7 +1847,8 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
 
     for (int i = 0; i < branchSize; ++i)
         for (int j = 0; j < 8; ++j) {
-            dp[i][j] = model.NewBoolVar();
+            dp[i][j] = model.NewBoolVar().WithName("seee");
+            //printf("dp[i][j]1851 index = %d\n", dp[i][j].index());
         }
 
     if constexpr (fixed) {
@@ -1849,8 +1870,10 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     for (int i = 0; i < branchSize - 1; ++i) {
         auto matrix = NewBoolVec(model, 64);
         for (int cn = 0; cn < 8; ++cn) {
-            auto halfSize0 = model.NewBoolVar();
-            auto halfSize1 = model.NewBoolVar();
+            auto halfSize0 = model.NewBoolVar().WithName("seee");
+            //printf("halfSize01874 index = %d\n", halfSize0.index());
+            auto halfSize1 = model.NewBoolVar().WithName("seee");
+            //printf("halfSize11874 index = %d\n", halfSize1.index());
             std::vector<BoolVar> column;
             column.push_back(dL[i]);
             column.push_back(dR[i]);
@@ -1882,7 +1905,8 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
         ifEnforced and dp[i][j] == True  =>  matrix[j * 4 + j]
         */
 
-        auto ifEnforced = model.NewBoolVar();
+        auto ifEnforced = model.NewBoolVar().WithName("seee");
+        //printf("ifEnforced1909 index = %d\n", ifEnforced.index());
         for (int j = 0; j < 8; ++j) {
             model.AddEquality(Not(isHalf[i]), ifEnforced);
             model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 8 + j] });
@@ -1942,7 +1966,7 @@ static void onlyLargeSwitch_EBCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVe
     isValid.push_back(nR[branchSize - 1]);
     isValid.push_back(dLL[branchSize - 1]);
     isValid.push_back(nLL[branchSize - 1]);
-    for (int i = 0; i < 8; ++i) isValid.push_back(model.NewBoolVar());
+    for (int i = 0; i < 8; ++i) isValid.push_back(model.NewBoolVar().WithName("seee")); //printf("isValid1969 index = %d\n", isValid[i].index());};
     BVAssign(model, isValid, lastTable);
 
     auto lastLiterals = NewBoolVec(model, 8);
@@ -1979,7 +2003,7 @@ static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::
 }
 
 template<int branchSize>
-static void addSwitch(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int halfNum_BCT)
+static void addSwitch(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int halfNum_BCT, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2005,7 +2029,7 @@ static void addSwitch(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std:
 }
 
 template<int branchSize>
-static void addSwitch2(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int halfNum_UBCT, const int halfNum_LBCT)
+static void addSwitch2(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int halfNum_UBCT, const int halfNum_LBCT, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2049,7 +2073,7 @@ static void addSwitch2(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std
 }
 
 template<int branchSize, bool fixed = false>
-static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, const int halfNum)
+static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2079,7 +2103,7 @@ static void _addSwitchUBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 }
 
 template<int branchSize, bool fixed = false>
-static void _addSwitchLBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &nablaIn, const int halfNum)
+static void _addSwitchLBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &nablaIn, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2112,7 +2136,7 @@ static void _addSwitchLBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 }
 
 template<int branchSize, bool fixed = false>
-static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, std::array<BoolVec, 2> &nablaIn, const int halfNum)
+static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, std::array<BoolVec, 2> &deltaOut, std::array<BoolVec, 2> &nablaIn, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     constexpr int alpha = getAlpha<branchSize>();
     constexpr int beta = getBeta<branchSize>();
@@ -2151,7 +2175,7 @@ static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 }
 
 template<int branchSize>
-static void addSwitchM(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum)
+static void addSwitchM(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     std::vector< std::array<BoolVec, 2> > EBCTs;
 
@@ -2159,32 +2183,32 @@ static void addSwitchM(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std
     std::array<BoolVec, 2> initEBCTn = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
     EBCTs.push_back(initEBCTd);
     EBCTs.push_back(initEBCTn);
-    _addSwitchUBCT<branchSize>(model, delta, initEBCTn, initEBCTd, halfNum);
+    _addSwitchUBCT<branchSize>(model, delta, initEBCTn, initEBCTd, halfNum, intermediate);
 
     for (int i = 0; i < mNum; ++i) {
         std::array<BoolVec, 2> EBCTd = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
         std::array<BoolVec, 2> EBCTn = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
         EBCTs.push_back(EBCTd);
         EBCTs.push_back(EBCTn);
-        _addSwitchEBCT<branchSize>(model, EBCTs[2 * i], EBCTn, EBCTd, EBCTs[2 * i + 1], halfNum);
+        _addSwitchEBCT<branchSize>(model, EBCTs[2 * i], EBCTn, EBCTd, EBCTs[2 * i + 1], halfNum, intermediate);
     }
 
-    _addSwitchLBCT<branchSize>(model, EBCTs[2 * mNum], nabla, EBCTs[2 * mNum + 1], halfNum);
+    _addSwitchLBCT<branchSize>(model, EBCTs[2 * mNum], nabla, EBCTs[2 * mNum + 1], halfNum, intermediate);
     return;
 }
 
 template<int branchSize, bool fixed = false>
-static void addSwitchT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum)
+static void addSwitchT(CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum, std::vector< BoolVec > &intermediate)
 {
     std::array<BoolVec, 2> initEBCTd = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
     std::array<BoolVec, 2> initEBCTn = { NewBoolVec(model, branchSize), NewBoolVec(model, branchSize) };
-    _addSwitchUBCT<branchSize, fixed>(model, delta, initEBCTn, initEBCTd, halfNum);
-    _addSwitchLBCT<branchSize, fixed>(model, initEBCTd, nabla, initEBCTn, halfNum);
+    _addSwitchUBCT<branchSize, fixed>(model, delta, initEBCTn, initEBCTd, halfNum, intermediate);
+    _addSwitchLBCT<branchSize, fixed>(model, initEBCTd, nabla, initEBCTn, halfNum, intermediate);
     return;
 }
 
 template<int branchSize, int precision>
-void search(const int preRound, const int postRound, const int halfNum_BCT, const std::array<unsigned long long int, 2> inputV, const std::array<unsigned long long int, 2> outputV, const int probBest)
+void search(const int preRound, const int postRound, const int halfNum_BCT, const std::array<unsigned long long int, 2> inputV, const std::array<unsigned long long int, 2> outputV, const int probBest, std::vector< BoolVec > &intermediate)
 {
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
@@ -2216,7 +2240,7 @@ void search(const int preRound, const int postRound, const int halfNum_BCT, cons
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(switchState);
 
-    addSwitch<branchSize>(cp_model, allState[preRound], switchState, halfNum_BCT);
+    addSwitch<branchSize>(cp_model, allState[preRound], switchState, halfNum_BCT, intermediate);
 
     for (int i = 1; i <= postRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -2342,7 +2366,7 @@ void search(const int preRound, const int postRound, const int halfNum_BCT, cons
 }
 
 template<int branchSize, int precision>
-void search2(const int preRound, const int postRound, const int halfNum_UBCT, const int halfNum_LBCT, const std::array<unsigned long long int, 2> inputV, const std::array<unsigned long long int, 2> outputV, const int probBest)
+void search2(const int preRound, const int postRound, const int halfNum_UBCT, const int halfNum_LBCT, const std::array<unsigned long long int, 2> inputV, const std::array<unsigned long long int, 2> outputV, const int probBest, std::vector< BoolVec > &intermediate)
 {
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
@@ -2374,7 +2398,7 @@ void search2(const int preRound, const int postRound, const int halfNum_UBCT, co
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(switchState);
 
-    addSwitch2<branchSize>(cp_model, allState[preRound], switchState, halfNum_UBCT, halfNum_LBCT);
+    addSwitch2<branchSize>(cp_model, allState[preRound], switchState, halfNum_UBCT, halfNum_LBCT, intermediate);
 
     for (int i = 1; i <= postRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -2504,7 +2528,7 @@ void search2(const int preRound, const int postRound, const int halfNum_UBCT, co
 }
 
 template<int branchSize, int precision>
-void search_no_fix(const int preRound, const int postRound, const int halfNum_BCT, const int probBest)
+void search_no_fix(const int preRound, const int postRound, const int halfNum_BCT, const int probBest, std::vector< BoolVec > &intermediate)
 {
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
@@ -2655,7 +2679,7 @@ void search_no_fix(const int preRound, const int postRound, const int halfNum_BC
 }
 
 template<int branchSize, int precision>
-void search2_no_fix(const int preRound, const int postRound, const int halfNum_UBCT, const int halfNum_LBCT, const int probBest)
+void search2_no_fix(const int preRound, const int postRound, const int halfNum_UBCT, const int halfNum_LBCT, const int probBest, std::vector< BoolVec > &intermediate)
 {
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
@@ -2691,7 +2715,7 @@ void search2_no_fix(const int preRound, const int postRound, const int halfNum_U
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(switchState);
 
-    addSwitch2<branchSize>(cp_model, allState[preRound], switchState, halfNum_UBCT, halfNum_LBCT);
+    addSwitch2<branchSize>(cp_model, allState[preRound], switchState, halfNum_UBCT, halfNum_LBCT, intermediate);
 
     for (int i = 1; i <= postRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -2772,7 +2796,7 @@ void search2_no_fix(const int preRound, const int postRound, const int halfNum_U
 }
 
 template<int branchSize, int precision, bool fixed = false>
-void searchM(const int preRound, const int postRound, const int mNum, const int halfNum, const std::array<uint64_t, 2> inputV, const std::array<uint64_t, 2> outputV, const int probBest)
+void searchM(const int preRound, const int postRound, const int mNum, const int halfNum, const std::array<uint64_t, 2> inputV, const std::array<uint64_t, 2> outputV, const int probBest, std::vector< BoolVec > &intermediate)
 {
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
@@ -2804,7 +2828,7 @@ void searchM(const int preRound, const int postRound, const int mNum, const int 
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(switchState);
 
-    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum);
+    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum, intermediate);
     //addSwitchT<branchSize, fixed>(cp_model, allState[preRound], switchState, mNum, halfNum);
 
     for (int i = 1; i <= postRound; ++i) {
@@ -2985,12 +3009,15 @@ void searchM(const int preRound, const int postRound, const int mNum, const int 
     return;
 }
 
+
 template<int branchSize, int precision>
-void searchM_no_fix(const int preRound, const int postRound, const int mNum, const int halfNum, const int probBest)
+void searchM_no_fix(const int preRound, const int postRound, const int mNum, const int halfNum, const int probBest, std::vector<BoolVec> &intermediate)
 {
     CpModelBuilder cp_model;
     std::vector<IntVar> probs;
     std::vector< std::array<BoolVec, 2> > allState;
+
+
 
     std::array<BoolVec, 2> inputDiff = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(inputDiff);
@@ -3009,7 +3036,7 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
         probs.push_back(prob);
 
         addRound<branchSize>(cp_model, allState[i - 1], state, prob);
-        cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 4));
+        cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 10));
 
         if (i == 3 || i == 4 || i == 5) {
             //cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 3));
@@ -3022,7 +3049,7 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
     std::array<BoolVec, 2> switchState = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
     allState.push_back(switchState);
 
-    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum);
+    addSwitchM<branchSize>(cp_model, allState[preRound], switchState, mNum, halfNum, intermediate);
 
     for (int i = 1; i <= postRound; ++i) {
         std::array<BoolVec, 2> state = { NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize) };
@@ -3032,7 +3059,7 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
         probs.push_back(prob);
 
         addRound<branchSize>(cp_model, allState[preRound + 1 + i - 1], state, prob);
-        cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 6));
+        cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 10));
 
         if (i == 3 || i == 4 || i == 5) {
             //cp_model.AddGreaterOrEqual(prob, cp_model.NewConstant((branchSize - 1) - 3));
@@ -3048,9 +3075,23 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
     auto totalProb = cp_model.NewIntVar(Domain(0, (branchSize - 1) * (preRound + postRound)));
     cp_model.AddEquality(totalProb, LinearExpr::Sum(probs));
 
-    //cp_model.Maximize(totalProb);
+    // cp_model.Maximize(totalProb);
     cp_model.AddLessOrEqual(totalProb, cp_model.NewConstant((branchSize - 1) * (preRound + postRound) - probBest));
     cp_model.AddGreaterThan(totalProb, cp_model.NewConstant((branchSize - 1) * (preRound + postRound) - probBest - precision));
+
+    BoolVec left_0_round = allState[0][0];
+    BoolVec right_0_round = allState[0][1];
+    std::vector<int> binary_left_0= {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0};
+    std::vector<int> binary_right_0 = {0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0};
+    mapBoolVecToBinary(left_0_round, binary_left_0, cp_model);
+    mapBoolVecToBinary(right_0_round, binary_right_0, cp_model);
+
+    /*BoolVec left_5_round = allState[5][0];
+    BoolVec right_5_round = allState[5][1];
+    std::vector<int> binary_left_5 = {0, 0, 0, 0, 1,0,1,0,0,0,0,0,0,1,0,0};
+    std::vector<int> binary_right_5 = {0, 0, 0, 0, 1,0,0,0,0,0,0,0,0,1,0,0};
+    mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
+    mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);*/
 
     auto model_built = cp_model.Build();
 
@@ -3062,7 +3103,7 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
 
     Model model;
     int num_solutions = 0;
-    absl::flat_hash_map< std::vector<uint64_t>, int > ioCnt;
+    absl::flat_hash_map< std::vector<uint64_t>, int > ioCnt; // hash table mentioned in the paper
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& r) {
         num_solutions++;
         cout << "-----------------------------" << endl
@@ -3079,12 +3120,31 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
                 ind[i] = (ind[i] << 1) + (bit & 1);
             }
         }
+        std::vector<int> tmp;
         for (int i = 0; i < 2; ++i) {
-            for (int j = 0; j < branchSize; ++j) {
-                const unsigned int bit = SolutionIntegerValue(r, allState[preRound + 1 + postRound][i][branchSize - 1 - j]);
-                outd[i] = (outd[i] << 1) + (bit & 1);
-            }
+             for (int j = 0; j < branchSize; ++j) {
+                     const unsigned int bit = SolutionIntegerValue(r, allState[preRound + 1 + postRound][i][branchSize - 1 - j]);
+                     outd[i] = (outd[i] << 1) + (bit & 1);
+             }
+
+            for (int j = 0; j < branchSize; ++j)
+                tmp.push_back(SolutionIntegerValue(r, inputDiff[i][j]));
         }
+        //print_states(allState, branchSize, r);
+        std::vector<int> probabilities;
+        int ii = 0;
+        for (auto &prob : probs) {
+            //cout << (branchSize - 1) - SolutionIntegerValue(response, prob). << endl;
+            probabilities.push_back((branchSize - 1) - SolutionIntegerValue(r, prob));
+            cout<< probabilities[ii] + 0 <<endl;
+            ii++;
+        }
+
+        // cout << "TotalProb: " << std::accumulate(probabilities.begin(), probabilities.end(), 0) << endl;
+        const auto prob_total = SolutionIntegerValue(r, totalProb);
+        cout << "TotalProb: " << prob_total << endl;
+        cout << "(branchSize - 1) * (preRound + postRound) - probBest: " << (branchSize - 1) * (preRound + postRound) - probBest << endl;
+        cout << "(branchSize - 1) * (preRound + postRound) - probBest - 1: " << (branchSize - 1) * (preRound + postRound) - probBest - 1 << endl;
 
         std::vector<uint64_t> vtmp{{ ind[0], ind[1], outd[0], outd[1] }};
         auto isExist = ioCnt.find(vtmp);
@@ -3092,6 +3152,12 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
             ioCnt.insert(std::make_pair(vtmp, 1));
         else
             ++ioCnt[vtmp];
+
+        /*const int num_variables = r.solution().size();
+        for (int i = 0; i < num_variables; ++i) {
+            std::cout << "Variable " << i << " value: " << r.solution(i) << std::endl;
+        }*/
+
 
     }));
     model.Add(NewSatParameters(parameters));
@@ -3126,7 +3192,8 @@ void searchM_no_fix(const int preRound, const int postRound, const int mNum, con
 
 int main()
 {
-    searchM_no_fix<32 / 2, 1>(4, 4, 0, 8, 10);
+    std::vector<BoolVec> intermediate;
+    searchM_no_fix<32 / 2, 1>(4, 4, 0, 6, 10, intermediate);
 
     /*searchM<32 / 2, 8>(4, 4, 0, 32,
         { 0b0010100000000000, 0b0000000000010000 },
