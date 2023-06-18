@@ -98,56 +98,6 @@ std::string util::binaryToHex(const std::string& binaryString, int bit_size) {
 }
 
 
-void util::print_states(std::vector< std::array<BoolVec, 2> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
-
-    for (int k = 0; k < allState.size(); k++) {
-        std::vector<int> tmp;
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < branch_size; j++)
-                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
-        cout<<binaryToHex(vectorToString(tmp, 2), m*branch_size)<<endl;
-    }
-}
-
-
-
-void util::print_states(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
-
-    for (int k = 0; k < allState.size(); k++) {
-        std::vector<int> tmp;
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < branch_size; j++)
-                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
-        cout<<binaryToHex(vectorToString(tmp, 3), m*branch_size)<<endl;
-    }
-}
-
-std::vector<std::string> util::states_to_vector_hex_string(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
-    std::vector<std::string> vector_hex_string;
-
-    for (int k = 0; k < allState.size(); k++) {
-        std::vector<int> tmp;
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < branch_size; j++)
-                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
-        vector_hex_string.push_back(binaryToHex(vectorToString(tmp, 3), m*branch_size));
-    }
-    return vector_hex_string;
-}
-
-void util::print_states(std::vector< std::array<BoolVec, 4> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m) {
-    for (int k = 0; k < allState.size(); k++) {
-        std::vector<int> tmp;
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < branch_size; j++)
-                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
-        cout<<binaryToHex(vectorToString(tmp, 4), m*branch_size)<<endl;
-    }
-}
-
-
-
-
 void util::mapBoolVecToBinary(const BoolVec& boolvec, const std::vector<int>& binary, operations_research::sat::CpModelBuilder& cp_model) {
     int n = boolvec.size();
 
@@ -155,8 +105,6 @@ void util::mapBoolVecToBinary(const BoolVec& boolvec, const std::vector<int>& bi
         cp_model.AddEquality(boolvec[n - i - 1], binary[i]);
     }
 }
-
-
 
 
     std::string util::generate_uuid_v4() {

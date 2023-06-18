@@ -11,6 +11,9 @@
 using namespace speck_boomerang2;
 using namespace util;
 
+
+int total_state_word_size = 3; // summing up key_word_state + block_word_state
+
 static std::vector< BoolVar > interBits;
 
 template<int branchSize>
@@ -2747,17 +2750,17 @@ json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int pr
     parameters.set_num_search_workers(10);
     parameters.set_log_search_progress(false);
     auto model_built = cp_model.Build();
-
     //const auto response = Solve(model_built);
     const auto response = SolveWithParameters(model_built, parameters);
     const auto status = response.status();
-    cout << "print_state related_key: " << status << endl;
-    print_states(allState, branchSize, response, 3);
-
-
-
     json log_string;
-    log_string["states"] = states_to_vector_hex_string(allState, branchSize, response, 3);
+    if (status == CpSolverStatus::OPTIMAL || status == CpSolverStatus::FEASIBLE) {
+        log_string["states"] = states_to_vector_hex_string<3>(allState, branchSize, response);
+    } else {
+        log_string["status"] = "INFEASIBLE";
+        cout << "INFEASIBLE model";
+    }
+
     return log_string;
 }
 
@@ -2781,7 +2784,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
     log_string["status"] = status;
     // CpSolverStatus::INFEASIBLE = 3
     if (status == CpSolverStatus::OPTIMAL || status == CpSolverStatus::FEASIBLE) {
-        //cout << "{\"pre-rounds\": " << preRound << ", \"post-rounds\": " << postRound << ", m-rounds: " << mNum + 2 << " ====" << endl << endl;
+        log_string["states"] = states_to_vector_hex_string<2>(allState, branchSize, response);
         log_string["pre-rounds"] = preRound;
         log_string["post-rounds"] = postRound;
         log_string["mNum"] = mNum + 2;
@@ -2792,16 +2795,11 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
             }
         }
         log_string["E1"]["inputDiff"] = vectorToString(tmp, 2);
-        // cout << "inputDiff: " << endl;
-        // printm(tmp);
-
         tmp.clear();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < branchSize; ++j)
                 tmp.push_back(SolutionIntegerValue(response, allState[preRound][i][j]));
         }
-        //cout << "E1 output diff: " << endl;
-        //printm(tmp);
         log_string["E1"]["outputDiff"] = vectorToString(tmp, 2);
 
         tmp.clear();

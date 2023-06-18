@@ -42,7 +42,7 @@ namespace util {
                       response, int m);
 
 
-    std::vector<std::string> states_to_vector_hex_string(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response, int m);
+    std::vector<std::string> states_to_vector_hex_string(std::vector< std::array<BoolVec, 3> > allState, int branch_size, operations_research::sat::CpSolverResponse response);
 
         void mapBoolVecToBinary(const BoolVec &boolvec, const std::vector<int> &binary,
                                               operations_research::sat::CpModelBuilder &cp_model);
@@ -81,6 +81,32 @@ namespace util {
     }
     return flattened;
     }
+
+template <int state_number_of_words>
+void  print_states(std::vector< std::array<BoolVec, state_number_of_words> > allState, int branch_size, operations_research::sat::CpSolverResponse response) {
+
+    for (int k = 0; k < allState.size(); k++) {
+        std::vector<int> tmp;
+        for (int i = 0; i < state_number_of_words; i++)
+            for (int j = 0; j < branch_size; j++)
+                tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
+        cout<<binaryToHex(vectorToString(tmp, state_number_of_words), state_number_of_words*branch_size)<<endl;
+    }
+}
+    template <int state_number_of_words>
+    std::vector<std::string> states_to_vector_hex_string(std::vector< std::array<BoolVec, state_number_of_words> > allState, int branch_size, operations_research::sat::CpSolverResponse response) {
+        std::vector<std::string> vector_hex_string;
+
+        for (int k = 0; k < allState.size(); k++) {
+            std::vector<int> tmp;
+            for (int i = 0; i < state_number_of_words; i++)
+                for (int j = 0; j < branch_size; j++)
+                    tmp.push_back(SolutionIntegerValue(response, allState[k][i][j]));
+            vector_hex_string.push_back(binaryToHex(vectorToString(tmp, state_number_of_words), state_number_of_words*branch_size));
+        }
+        return vector_hex_string;
+    }
+
 
 
 }
