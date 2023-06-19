@@ -2922,21 +2922,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
         }
         //cout << endl;
         log_string["isHalf"] = isHalf_vector;
-        std::vector<std::string> intermediate_values;
-        //cout << "intermediate: " << endl;
-        const int _tmpsize = intermediate.size();
-        //cout << "_tmpsize: " << _tmpsize << endl;
-        for (int i = 0; i < _tmpsize; ++i) {
-            std::string intermediate_temp = "0b";
-            //cout << "0b";
-            for (int j = 0; j < branchSize; ++j) {
-                intermediate_temp += std::to_string(SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]));
-               // cout << SolutionIntegerValue(response, intermediate[i][branchSize - 1 - j]);
-            }
-            intermediate_values.push_back(intermediate_temp);
-            //cout << endl;
-        }
-        log_string["intermediate_values"] = intermediate_values;
+        log_string["intermediate_values"] = states_to_vector_hex_string(intermediate, branchSize, response);
 
         //auto prob = SolutionIntegerValue(response, totalProb);
         auto prob1 = std::accumulate(probabilities.begin(), probabilities.begin() + preRound, 0);//

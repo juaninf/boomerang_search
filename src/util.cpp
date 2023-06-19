@@ -138,3 +138,15 @@ void util::mapBoolVecToBinary(const BoolVec& boolvec, const std::vector<int>& bi
         return ss.str();
     }
 
+std::vector<std::string> util::states_to_vector_hex_string(std::vector< BoolVec > allState, int branch_size, operations_research::sat::CpSolverResponse response) {
+    std::vector<std::string> vector_hex_string;
+    std::vector<int> tmp;
+
+    for (int k = 0; k < allState.size(); k++) {
+        for (int j = 0; j < branch_size; j++)
+            tmp.push_back(SolutionIntegerValue(response, allState[k][j]));
+        vector_hex_string.push_back(binaryToHex(vectorToString(tmp, 1), branch_size));
+    }
+    return vector_hex_string;
+}
+

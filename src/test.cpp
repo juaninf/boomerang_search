@@ -30,7 +30,7 @@ using IntVec = std::vector<sat::IntVar>;
 using std::cout;
 using std::endl;
 
-TEST_CASE( "Table 6", "[speck32/64]") {
+TEST_CASE( "Table 6", "[speck32/64]") { // To run this specific test you can run bin/testrun -t "Table 6"
     const int preRound = 4;
     const int postRound = 4;
     const int mNum = 0;
@@ -59,8 +59,11 @@ TEST_CASE( "Table 6", "[speck32/64]") {
     mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
     mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);
     json result = search<16>(cp_model, preRound, postRound, 0, halfNum, window_size,  allState, intermediate, probs);
-    printf("%s", result["E1"]["inputDiff"].dump().c_str());
     REQUIRE ( strcmp(result["E1"]["inputDiff"].dump().c_str(), "\"00101000000000000000000000010000\"") == 0);
+    std::string intermediate_values_as_string = result["intermediate_values"].dump().c_str();
+    std::string expected_intermediate_values = "[\"0100\",\"840a\",\"4205\",\"50a1\",\"850a\",\"150a\",\"9520\",\"0a04\",\"0080\",\"0a84\"]";
+    REQUIRE ( intermediate_values_as_string.compare(expected_intermediate_values ) == 0);
+    cout << result.dump().c_str();
 }
 
 
