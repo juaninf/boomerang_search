@@ -230,8 +230,7 @@ TEST_CASE( "Checking Trail in the Related Key Model speck32/64", "Related_key[sp
 
 
     json result = search_related_key<16>(cp_model, preRound, postRound, 0, halfNum, window_size,  allState, intermediate, probs, key_state_bottom);
-    cout << result["key_state_bottom"].dump().c_str() << endl;
-    cout << result["states"].dump().c_str() << endl;
+
     REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"400044a95602\"") == 0);
 }
 
@@ -297,47 +296,62 @@ TEST_CASE( "Checking Trail in Related Key Scenario speck48/96", "[speck48/96]") 
     mapBoolVecToBinary(right_4_round, binary_right_4, cp_model);
 
     // Post Round
+    BoolVec key_6_round = allState[6][0];
+    BoolVec left_6_round = allState[6][1];
+    BoolVec right_6_round = allState[6][2];
+    std::vector<int> binary_key_6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_left_6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_right_6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(key_6_round, binary_key_6, cp_model);
+    mapBoolVecToBinary(left_6_round, binary_left_6, cp_model);
+    mapBoolVecToBinary(right_6_round, binary_right_6, cp_model);
 
-    /*BoolVec left_4_round = allState[4][1];
-    BoolVec right_4_round = allState[4][2];
-    std::vector<int> binary_left_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1};
-    std::vector<int> binary_right_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1};
-    mapBoolVecToBinary(left_4_round, binary_left_4, cp_model);
-    mapBoolVecToBinary(right_4_round, binary_right_4, cp_model);
+    BoolVec left_7_round = allState[7][1];
+    BoolVec right_7_round = allState[7][2];
+    std::vector<int> binary_left_7 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_right_7 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(left_7_round, binary_left_7, cp_model);
+    mapBoolVecToBinary(right_7_round, binary_right_7, cp_model);
 
-    BoolVec left_4_round = allState[4][1];
-    BoolVec right_4_round = allState[4][2];
-    std::vector<int> binary_left_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1};
-    std::vector<int> binary_right_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1};
-    mapBoolVecToBinary(left_4_round, binary_left_4, cp_model);
-    mapBoolVecToBinary(right_4_round, binary_right_4, cp_model);
+    BoolVec key_8_round = allState[8][0];
+    BoolVec left_8_round = allState[8][1];
+    BoolVec right_8_round = allState[8][2];
+    std::vector<int> binary_key_8 = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_left_8 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_right_8 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(key_8_round, binary_key_8, cp_model);
+    mapBoolVecToBinary(left_8_round, binary_left_8, cp_model);
+    mapBoolVecToBinary(right_8_round, binary_right_8, cp_model);
 
-    BoolVec left_4_round = allState[4][1];
-    BoolVec right_4_round = allState[4][2];
-    std::vector<int> binary_left_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1};
-    std::vector<int> binary_right_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1};
-    mapBoolVecToBinary(left_4_round, binary_left_4, cp_model);
-    mapBoolVecToBinary(right_4_round, binary_right_4, cp_model);
+    BoolVec key_9_round = allState[9][0];
+    BoolVec left_9_round = allState[9][1];
+    BoolVec right_9_round = allState[9][2];
+    std::vector<int> binary_key_9 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0};
+    std::vector<int> binary_left_9 = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_right_9 = {1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(key_9_round, binary_key_9, cp_model);
+    mapBoolVecToBinary(left_9_round, binary_left_9, cp_model);
+    mapBoolVecToBinary(right_9_round, binary_right_9, cp_model);
 
-    BoolVec left_4_round = allState[4][1];
-    BoolVec right_4_round = allState[4][2];
-    std::vector<int> binary_left_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1};
-    std::vector<int> binary_right_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1};
-    mapBoolVecToBinary(left_4_round, binary_left_4, cp_model);
-    mapBoolVecToBinary(right_4_round, binary_right_4, cp_model);
+    BoolVec key_10_round = allState[10][0];
+    BoolVec left_10_round = allState[10][1];
+    BoolVec right_10_round = allState[10][2];
+    std::vector<int> binary_key_10 = {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0};
+    std::vector<int> binary_left_10 = {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_right_10 = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0};
+    mapBoolVecToBinary(key_10_round, binary_key_10, cp_model);
+    mapBoolVecToBinary(left_10_round, binary_left_10, cp_model);
+    mapBoolVecToBinary(right_10_round, binary_right_10, cp_model);
 
-    BoolVec left_4_round = allState[4][1];
-    BoolVec right_4_round = allState[4][2];
-    std::vector<int> binary_left_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1};
-    std::vector<int> binary_right_4 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1};
-    mapBoolVecToBinary(left_4_round, binary_left_4, cp_model);
-    mapBoolVecToBinary(right_4_round, binary_right_4, cp_model);*/
-
+    BoolVec after_addition = key_state_bottom[3];
+    std::vector<int> binary_after_addition = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(after_addition, binary_after_addition, cp_model);
 
 
 
     json result = search_related_key<24>(cp_model, preRound, postRound, 0, halfNum, window_size,  allState, intermediate, probs, key_state_bottom);
-    cout << result["states"][4].dump().c_str();
+    cout << result["key_state_bottom"].dump().c_str() << endl;
+    cout << result["states"].dump().c_str() << endl;
     REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"002048001949005809\"") == 0);
 }
 
