@@ -2630,6 +2630,173 @@ static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
     return;
 }
 
+
+template<bool fixed = false, int branchSize>
+static void onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec &dR, BoolVec &nL, BoolVec &nR, const int halfNum = 1)
+{
+    const std::vector< std::vector<std::vector<int64_t>> > table{
+            {{0, 0, 0, 0, 1, 0, 0, 0, 0},
+                    {1, 0, 0, 0, 1, 1, 0, 0, 1},
+                    {0, 1, 0, 0, 1, 1, 0, 0, 1},
+                    {1, 1, 0, 0, 1, 1, 0, 0, 1},
+                    {0, 0, 1, 0, 1, 0, 1, 0, 1},
+                    {1, 0, 1, 0, 1, 0, 0, 1, 1},
+                    {0, 1, 1, 0, 0, 0, 0, 0, 0},
+                    {1, 1, 1, 0, 0, 0, 0, 0, 0},
+                    {0, 0, 0, 1, 1, 0, 1, 0, 1},
+                    {1, 0, 0, 1, 0, 0, 0, 0, 0},
+                    {0, 1, 0, 1, 0, 0, 0, 0, 0},
+                    {1, 1, 0, 1, 1, 0, 0, 1, 1},
+                    {0, 0, 1, 1, 1, 0, 1, 0, 1},
+                    {1, 0, 1, 1, 0, 0, 0, 0, 0},
+                    {0, 1, 1, 1, 1, 0, 0, 1, 1},
+                    {1, 1, 1, 1, 0, 0, 0, 0, 0}},
+            {{0, 0, 0, 0, 1, 1, 0, 0, 1},
+                    {1, 0, 0, 0, 1, 1, 0, 0, 1},
+                    {0, 1, 0, 0, 1, 1, 0, 0, 1},
+                    {1, 1, 0, 0, 0, 1, 0, 0, 0},
+                    {0, 0, 1, 0, 0, 0, 0, 0, 0},
+                    {1, 0, 1, 0, 0, 0, 0, 0, 0},
+                    {0, 1, 1, 0, 0, 1, 1, 0, 1},
+                    {1, 1, 1, 0, 0, 1, 0, 1, 1},
+                    {0, 0, 0, 1, 0, 1, 1, 0, 1},
+                    {1, 0, 0, 1, 0, 0, 0, 0, 0},
+                    {0, 1, 0, 1, 0, 0, 0, 0, 0},
+                    {1, 1, 0, 1, 0, 1, 0, 1, 1},
+                    {0, 0, 1, 1, 0, 0, 0, 0, 0},
+                    {1, 0, 1, 1, 0, 1, 1, 0, 1},
+                    {0, 1, 1, 1, 0, 0, 0, 0, 0},
+                    {1, 1, 1, 1, 0, 1, 0, 1, 1}},
+            {{0, 0, 0, 0, 1, 0, 1, 0, 1},
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0},
+                    {0, 1, 0, 0, 0, 1, 1, 0, 1},
+                    {1, 1, 0, 0, 0, 0, 0, 0, 0},
+                    {0, 0, 1, 0, 1, 0, 1, 0, 1},
+                    {1, 0, 1, 0, 0, 0, 0, 0, 0},
+                    {0, 1, 1, 0, 0, 0, 0, 0, 0},
+                    {1, 1, 1, 0, 0, 1, 1, 0, 1},
+                    {0, 0, 0, 1, 1, 0, 1, 0, 1},
+                    {1, 0, 0, 1, 0, 1, 1, 0, 1},
+                    {0, 1, 0, 1, 0, 0, 0, 0, 0},
+                    {1, 1, 0, 1, 0, 0, 0, 0, 0},
+                    {0, 0, 1, 1, 0, 0, 1, 0, 0},
+                    {1, 0, 1, 1, 0, 0, 1, 1, 1},
+                    {0, 1, 1, 1, 0, 0, 1, 1, 1},
+                    {1, 1, 1, 1, 0, 0, 1, 1, 1}},
+            {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+                    {1, 0, 0, 0, 1, 0, 0, 1, 1},
+                    {0, 1, 0, 0, 0, 0, 0, 0, 0},
+                    {1, 1, 0, 0, 0, 1, 0, 1, 1},
+                    {0, 0, 1, 0, 1, 0, 0, 1, 1},
+                    {1, 0, 1, 0, 0, 0, 0, 0, 0},
+                    {0, 1, 1, 0, 0, 0, 0, 0, 0},
+                    {1, 1, 1, 0, 0, 1, 0, 1, 1},
+                    {0, 0, 0, 1, 0, 0, 0, 0, 0},
+                    {1, 0, 0, 1, 0, 0, 0, 0, 0},
+                    {0, 1, 0, 1, 1, 0, 0, 1, 1},
+                    {1, 1, 0, 1, 0, 1, 0, 1, 1},
+                    {0, 0, 1, 1, 0, 0, 1, 1, 1},
+                    {1, 0, 1, 1, 0, 0, 1, 1, 1},
+                    {0, 1, 1, 1, 0, 0, 1, 1, 1},
+                    {1, 1, 1, 1, 0, 0, 0, 1, 0}}};
+
+    std::array< std::array<BoolVar, 4>, branchSize > dp;
+    //std::array< BoolVar, branchSize > isHalf;
+    auto isHalf = NewBoolVec(model, branchSize - 1);
+    //intermediate.push_back(isHalf);
+
+    for (int i = 0; i < branchSize; ++i)
+        for (int j = 0; j < 4; ++j) {
+            dp[i][j] = model.NewBoolVar();
+        }
+    //for (int i = 0; i < branchSize; ++i)
+    //    isHalf[i] = model.NewBoolVar();
+    if constexpr (fixed) {
+        auto halfSum = model.NewIntVar(Domain(0, branchSize - 1));
+        model.AddLessOrEqual(halfSum, model.NewConstant(halfNum));
+        model.AddEquality(LinearExpr::Sum(isHalf), halfSum);
+        model.AddDecisionStrategy({ halfSum }, DecisionStrategyProto::CHOOSE_FIRST, DecisionStrategyProto::SELECT_MIN_VALUE);
+    } else
+        model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
+
+    model.AddEquality(dp[0][0], model.TrueVar());
+    model.AddEquality(dp[0][1], model.FalseVar());
+    model.AddEquality(dp[0][2], model.FalseVar());
+    model.AddEquality(dp[0][3], model.FalseVar());
+    for (int i = 0; i < branchSize - 1; ++i) {
+        auto matrix = NewBoolVec(model, 16);
+        for (int cn = 0; cn < 4; ++cn) {
+            auto halfSize = model.NewBoolVar();
+            std::vector<BoolVar> column;
+            column.push_back(dL[i]);
+            column.push_back(dR[i]);
+            column.push_back(nL[i]);
+            column.push_back(nR[i]);
+            column.push_back(matrix[0 * 4 + cn]);
+            column.push_back(matrix[1 * 4 + cn]);
+            column.push_back(matrix[2 * 4 + cn]);
+            column.push_back(matrix[3 * 4 + cn]);
+            column.push_back(halfSize);
+            BVAssign(model, column, table[cn]);
+        }
+        model.AddBoolOr({ dp[i + 1][0], dp[i + 1][1], dp[i + 1][2], dp[i + 1][3] });
+
+        /*
+        dp[i][j] == 1  =>  dp[i + 1][j] and matrix[j * 4 + j]
+
+        ifEnforced = not(isHalf[i]) or not(can0[i][j])
+
+        ifEnforced and dp[i][j] == True  =>  dp[i + 1][j]
+        ifEnforced and dp[i][j] == True  =>  matrix[j * 4 + j]
+
+        */
+
+        auto ifEnforced = model.NewBoolVar();
+        for (int j = 0; j < 4; ++j) {
+            model.AddEquality(Not(isHalf[i]), ifEnforced);
+            model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 4 + j] });
+            model.AddBoolOr({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] });
+
+            // milp
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), matrix[j * 4 + j] }), model.NewConstant(1));
+            model.AddGreaterOrEqual(LinearExpr::Sum({ Not(ifEnforced), Not(dp[i][j]), dp[i + 1][j] }), model.NewConstant(1));
+            // milp
+        }
+
+        /*
+        not(ifEnforced) => Or ( dp[i][j] and not(matrix[j * 4 + j]) )
+        */
+        auto enforcedLiterals = NewBoolVec(model, 4);
+        for (int j = 0; j < 4; ++j) {
+            model.AddBoolAnd({ Not(matrix[j * 4 + j]), dp[i][j] }).OnlyEnforceIf(enforcedLiterals[j]);
+            model.AddBoolOr({ matrix[j * 4 + j], Not(dp[i][j]) }).OnlyEnforceIf(Not(enforcedLiterals[j]));
+        }
+        model.AddBoolOr({ ifEnforced, enforcedLiterals[0], enforcedLiterals[1], enforcedLiterals[2], enforcedLiterals[3] });
+
+        auto literals = NewBoolVec(model, 16);
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                model.AddBoolAnd({ matrix[r * 4 + c], dp[i][c] }).OnlyEnforceIf(literals[r * 4 + c]);
+                model.AddBoolOr({ Not(matrix[r * 4 + c]), Not(dp[i][c]) }).OnlyEnforceIf(Not(literals[r * 4 + c]));
+                // milp
+                model.AddGreaterOrEqual(matrix[r * 4 + c],  literals[r * 4 + c]);
+                model.AddGreaterOrEqual(dp[i][c],           literals[r * 4 + c]);
+                model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + c], model.TrueVar() }), LinearExpr::Sum({ matrix[r * 4 + c], dp[i][c] }));
+                // milp
+            }
+            model.AddBoolOr({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }).OnlyEnforceIf(dp[i + 1][r]);
+            model.AddBoolAnd({ Not(literals[r * 4 + 0]), Not(literals[r * 4 + 1]), Not(literals[r * 4 + 2]), Not(literals[r * 4 + 3]) }).OnlyEnforceIf(Not(dp[i + 1][r]));
+            // milp
+            for (int li = 0; li < 4; ++li)
+                model.AddGreaterOrEqual(dp[i + 1][r], literals[r * 4 + li]);
+            model.AddGreaterOrEqual(LinearExpr::Sum({ literals[r * 4 + 0], literals[r * 4 + 1], literals[r * 4 + 2], literals[r * 4 + 3] }), dp[i + 1][r]);
+            // milp
+        }
+    }
+
+    return;
+}
+
 template<int branchSize>
 static void addSwitchM(
         CpModelBuilder &model, std::array<BoolVec, 2> &delta, std::array<BoolVec, 2> &nabla, const int mNum, const int halfNum, std::vector< BoolVec > &intermediate
@@ -2657,15 +2824,33 @@ static void addSwitchM(
 
 
 template<int branchSize>
+static void addSwitchInternalProcedure(CpModelBuilder &model, std::array<BoolVec, 3> &delta, std::array<BoolVec, 3> &nabla, const int mNum, const int halfNum, std::vector< BoolVec > &intermediate
+) {
+    int alpha = getAlpha<branchSize>();
+    auto afterAlpha = NewBoolVec(model, branchSize);
+    BVRor(model, afterAlpha, delta[1], alpha);
+    onlyLargeSwitch_BCT_enum<false, 16>(model, afterAlpha, delta[2], nabla[1], nabla[2], 24);
+}
+
+template<int branchSize>
+static void addSwitchKeySchedule(CpModelBuilder &model, std::array<BoolVec, 3> &delta, std::array<BoolVec, 3> &nabla, const int mNum, const int halfNum, std::vector< BoolVec > &intermediate, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom
+) {
+    int alpha = getAlpha<branchSize>();
+    auto afterAlpha = NewBoolVec(model, branchSize);
+    BVRor(model, afterAlpha, key_state_top[5], alpha);
+    onlyLargeSwitch_BCT_enum<false, branchSize>(model, afterAlpha, delta[1], key_state_bottom[3], nabla[1], 24);
+}
+
+template<int branchSize>
 CpModelBuilder
 speck_boomerang2::create_model_related_key(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
-                               std::vector <std::array<BoolVec, 3>> &allState, std::vector<BoolVec> &key_state, std::vector<BoolVec> &key_state_bottom,
+                               std::vector <std::array<BoolVec, 3>> &allState, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom,
                                std::vector <BoolVec> &intermediate,
-                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model) {
+                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model, bool withMiddlePart) {
 
     for (int i=0; i < key_size/branchSize; i++)
-        key_state.push_back(NewBoolVec(cp_model, branchSize));
-    allState.push_back({key_state[0], NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
+        key_state_top.push_back(NewBoolVec(cp_model, branchSize));
+    allState.push_back({key_state_top[0], NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
     std::vector <BoolVar> inputBits;
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < branchSize; ++j)
@@ -2676,11 +2861,13 @@ speck_boomerang2::create_model_related_key(const int preRound, const int postRou
         allState.push_back(state);
         std::array<IntVar, 2> prob = {cp_model.NewIntVar(Domain(0, branchSize - 1)), cp_model.NewIntVar(Domain(0, branchSize - 1))};
         probs.push_back(prob);
-        addRound_related_key<branchSize>(cp_model, allState[i - 1], state, prob, window_size, key_state, i);
+        addRound_related_key<branchSize>(cp_model, allState[i - 1], state, prob, window_size, key_state_top, i);
     }
     // Here I need to to add the middle part
 
+
     allState.push_back({NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
+
 
 
     for (int i=0; i < key_size/branchSize - 1; i++)
@@ -2702,8 +2889,21 @@ speck_boomerang2::create_model_related_key(const int preRound, const int postRou
         }
     }
 
+    if (withMiddlePart) {
+        //cout << "With Middle Part";
+        addSwitchInternalProcedure<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
+                                               intermediate);
+        addSwitchKeySchedule<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
+                                         intermediate, key_state_top, key_state_bottom);
+    }
+
+    std::vector <BoolVar> outputBits; // apparently never used
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < branchSize; ++j)
+            outputBits.push_back(allState[preRound + 1 + postRound][i][j]);
+    cp_model.AddBoolOr(outputBits);
     std::vector<std::array<IntVar, 2>> preRoundProbs(probs.begin(), probs.begin() + preRound);
-    cp_model.Maximize(LinearExpr::Sum(flatten2DArray(preRoundProbs)));
+    cp_model.Maximize(LinearExpr::Sum(flatten2DArray(probs)));
 
     return cp_model;
 }
@@ -2763,19 +2963,24 @@ template<int branchSize>
 template<int branchSize>
 json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                               std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
-                                          std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state) {
+                                          std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom) {
     SatParameters parameters;
-    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
     parameters.set_num_search_workers(10);
     parameters.set_log_search_progress(false);
     auto model_built = cp_model.Build();
-    //const auto response = Solve(model_built);
     const auto response = SolveWithParameters(model_built, parameters);
     const auto status = response.status();
     json log_string;
     if (status == CpSolverStatus::OPTIMAL || status == CpSolverStatus::FEASIBLE) {
         log_string["states"] = states_to_vector_hex_string<3>(allState, branchSize, response);
-        log_string["key_state_bottom"] = states_to_vector_hex_string(key_state, branchSize, response);
+        log_string["key_state_bottom"] = states_to_vector_hex_string(key_state_bottom, branchSize, response);
+        log_string["key_state_top"] = states_to_vector_hex_string(key_state_top, branchSize, response);
+        std::vector<int> probabilities;
+        for (auto &prob : flatten2DArray(probs)) {
+            probabilities.push_back((branchSize - 1) - SolutionIntegerValue(response, prob));
+        }
+
+        log_string["probabilities"] = probabilities;
     } else {
         log_string["status"] = "INFEASIBLE";
         cout << "INFEASIBLE model";
@@ -3207,14 +3412,14 @@ CpModelBuilder
 speck_boomerang2::create_model_related_key<16>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                          std::vector <std::array<BoolVec, 3>> &allState,  std::vector<BoolVec> &key_state, std::vector<BoolVec> &key_state_bottom,
                          std::vector <BoolVec> &intermediate,
-                         std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model);
+                         std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model, bool withMiddlePart);
 
 template
 CpModelBuilder
 speck_boomerang2::create_model_related_key<24>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                                std::vector <std::array<BoolVec, 3>> &allState,  std::vector<BoolVec> &key_state, std::vector<BoolVec> &key_state_bottom,
                                                std::vector <BoolVec> &intermediate,
-                                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model);
+                                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model, bool withMiddlePart);
 
 template
 CpModelBuilder
@@ -3263,9 +3468,9 @@ json speck_boomerang2::search<64>(CpModelBuilder &cp_model, const int preRound, 
 template
 json speck_boomerang2::search_related_key<16>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                               std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
-                                              std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state);
+                                              std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom);
 
 template
 json speck_boomerang2::search_related_key<24>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                               std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
-                                              std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state);
+                                              std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom);

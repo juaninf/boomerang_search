@@ -31,7 +31,7 @@ namespace speck_boomerang2 {
     template<int branchSize>
     json search_related_key(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum,
                 int window_size, std::vector <std::array<BoolVec, 3>> &allState,
-                std::vector <BoolVec> &intermediate, std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state);
+                std::vector <BoolVec> &intermediate, std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom);
 
     template<int branchSize>
     CpModelBuilder
@@ -45,7 +45,7 @@ namespace speck_boomerang2 {
     create_model_related_key(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                                std::vector <std::array<BoolVec, 3>> &allState, std::vector<BoolVec> &key_state, std::vector<BoolVec> &key_state_bottom,
                                                std::vector <BoolVec> &intermediate,
-                                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model);
+                                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model, bool withMiddlePart);
 
 
     template<int branchSize>
