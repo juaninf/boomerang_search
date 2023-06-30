@@ -2463,28 +2463,38 @@ static void addRound(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::
 }
 
 template<int branchSize>
-static void addRoundInternalStructureXorSubKey(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::array<BoolVec, 2> &output, IntVar &prob, BoolVec &subkey, int window_size)
+static void addRoundInternalStructureXorSubKey(CpModelBuilder &model, std::array<BoolVec, 2> &state, std::array<BoolVec, 2> &output, IntVar &prob, BoolVec &subkey, int window_size, bool bottomPart, int round)
 {
     int alpha = getAlpha<branchSize>();
     int beta = getBeta<branchSize>();
 
-    auto afterAlpha = NewBoolVec(model, branchSize);
-    auto afterBeta = NewBoolVec(model, branchSize);
-    auto afterAddition = NewBoolVec(model, branchSize);
+    if (bottomPart && round == 1) {
+        auto afterAlpha = NewBoolVec(model, branchSize);
+        auto afterBeta = NewBoolVec(model, branchSize);
+        auto afterAddition = NewBoolVec(model, branchSize);
+        BVXor(model, state[0], subkey, output[0]);
+        BVRol(model, afterBeta, state[1], beta);
+        BVXor(model, output[0], afterBeta, output[1]);
+    } else {
+        auto afterAlpha = NewBoolVec(model, branchSize);
+        auto afterBeta = NewBoolVec(model, branchSize);
+        auto afterAddition = NewBoolVec(model, branchSize);
 
-    BVRor(model, afterAlpha, state[0], alpha);
-    addAddition_SAT_MILP<branchSize>(model, afterAlpha, state[1], afterAddition, prob, window_size);
+        BVRor(model, afterAlpha, state[0], alpha);
+        addAddition_SAT_MILP<branchSize>(model, afterAlpha, state[1], afterAddition, prob, window_size);
 
-    BVXor(model, afterAddition, subkey, output[0]);
+        BVXor(model, afterAddition, subkey, output[0]);
 
-    BVRol(model, afterBeta, state[1], beta);
-    BVXor(model, output[0], afterBeta, output[1]);
+        BVRol(model, afterBeta, state[1], beta);
+        BVXor(model, output[0], afterBeta, output[1]);
+
+    }
 
     return;
 }
 
 template<int branchSize>
-static void addRound_related_key(CpModelBuilder &model, std::array<BoolVec, 3> &state, std::array<BoolVec, 3> &output, std::array<IntVar, 2> &prob, int window_size, std::vector<BoolVec> &key_state, int round)
+static void addRound_related_key(CpModelBuilder &model, std::array<BoolVec, 3> &state, std::array<BoolVec, 3> &output, std::array<IntVar, 2> &prob, int window_size, std::vector<BoolVec> &key_state, int round, bool bottomPart)
 {
     std::array<BoolVec, 2> input_internal_structure_round = {state[1], state[2]};
     std::array<BoolVec, 2> output_internal_structure_round = {output[1], output[2]};
@@ -2492,7 +2502,7 @@ static void addRound_related_key(CpModelBuilder &model, std::array<BoolVec, 3> &
     auto prob_key_schedule = prob[0];
     auto prob_internal_structure = prob[1];
     if (round == 1) {
-        addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , state[0], window_size);
+        addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , state[0], window_size, bottomPart, round);
         for (int i = 0; i < branchSize; i++) {
             model.AddEquality(output[0][i], state[0][i]); // constraint
         }
@@ -2500,7 +2510,8 @@ static void addRound_related_key(CpModelBuilder &model, std::array<BoolVec, 3> &
         std::array<BoolVec, 2> input_key_schedule_round = {key_state[round-1], state[0]};
         std::array<BoolVec, 2> output_key_schedule_round = {NewBoolVec(model, branchSize), output[0]};
         addRound<branchSize>(model, input_key_schedule_round, output_key_schedule_round, prob_key_schedule, window_size);
-        addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , output_key_schedule_round[1], window_size);
+        addRoundInternalStructureXorSubKey<branchSize>(model, input_internal_structure_round, output_internal_structure_round, prob_internal_structure , output_key_schedule_round[1], window_size, bottomPart, round);
+
         key_state.push_back(output_key_schedule_round[0]);
     }
 }
@@ -2861,17 +2872,15 @@ speck_boomerang2::create_model_related_key(const int preRound, const int postRou
         allState.push_back(state);
         std::array<IntVar, 2> prob = {cp_model.NewIntVar(Domain(0, branchSize - 1)), cp_model.NewIntVar(Domain(0, branchSize - 1))};
         probs.push_back(prob);
-        addRound_related_key<branchSize>(cp_model, allState[i - 1], state, prob, window_size, key_state_top, i);
+        addRound_related_key<branchSize>(cp_model, allState[i - 1], state, prob, window_size, key_state_top, i, false);
     }
     // Here I need to to add the middle part
 
 
-    allState.push_back({NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
 
-
-
-    for (int i=0; i < key_size/branchSize - 1; i++)
+    for (int i=0; i < key_size/branchSize; i++)
         key_state_bottom.push_back(NewBoolVec(cp_model, branchSize)); // The first one is not used
+    allState.push_back({key_state_bottom[0], NewBoolVec(cp_model, branchSize), NewBoolVec(cp_model, branchSize)});
 
     auto afterAddition = NewBoolVec(cp_model, branchSize); // This is the addition comming from the BCT
     for (int i = 1; i <= postRound; ++i) {
@@ -2880,21 +2889,18 @@ speck_boomerang2::create_model_related_key(const int preRound, const int postRou
         };
         int previous_state_index = preRound + i;
         allState.push_back(state);
-        if (i == 1) {
-            addRound_first_round_bottom_related_key<branchSize>(cp_model, afterAddition, allState[previous_state_index], state, key_state_bottom, i);
-        } else {
-            std::array<IntVar, 2> prob = {cp_model.NewIntVar(Domain(0, branchSize - 1)), cp_model.NewIntVar(Domain(0, branchSize - 1))};
-            probs.push_back(prob);
-            addRound_related_key<branchSize>(cp_model, allState[previous_state_index], state, prob, window_size, key_state_bottom, i);
-        }
+        std::array<IntVar, 2> prob = {cp_model.NewIntVar(Domain(0, branchSize - 1)), cp_model.NewIntVar(Domain(0, branchSize - 1))};
+        probs.push_back(prob);
+        addRound_related_key<branchSize>(cp_model, allState[previous_state_index], state, prob, window_size, key_state_bottom, i, true);
+
     }
 
     if (withMiddlePart) {
         //cout << "With Middle Part";
         addSwitchInternalProcedure<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
                                                intermediate);
-        addSwitchKeySchedule<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
-                                         intermediate, key_state_top, key_state_bottom);
+        /*addSwitchKeySchedule<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
+                                         intermediate, key_state_top, key_state_bottom);*/
     }
 
     std::vector <BoolVar> outputBits; // apparently never used
@@ -2965,7 +2971,7 @@ json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int pr
                               std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
                                           std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom) {
     SatParameters parameters;
-    parameters.set_num_search_workers(10);
+    parameters.set_num_search_workers(20);
     parameters.set_log_search_progress(false);
     auto model_built = cp_model.Build();
     const auto response = SolveWithParameters(model_built, parameters);
@@ -2996,7 +3002,7 @@ json speck_boomerang2::search(CpModelBuilder &cp_model, const int preRound, cons
 {
     SatParameters parameters;
     //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
-    parameters.set_num_search_workers(10);
+    parameters.set_num_search_workers(30);
     parameters.set_log_search_progress(false);
     auto model_built = cp_model.Build();
 
