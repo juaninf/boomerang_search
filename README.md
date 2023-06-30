@@ -15,5 +15,5 @@ The 'arxtools_lea_switch_model' folder contains the ARXtools model for computing
 
 # Note 
 
-This source code depends on or-tools. You need to download or-tools under src/3rd
+This source code depends on or-tools, catch2 and nlohmann/json. You need to download them under src/3rd.
 
