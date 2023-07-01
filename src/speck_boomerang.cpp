@@ -2985,7 +2985,17 @@ json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int pr
         for (auto &prob : flatten2DArray(probs)) {
             probabilities.push_back((branchSize - 1) - SolutionIntegerValue(response, prob));
         }
+        // hardcoded for now
+        int alpha = getAlpha<branchSize>();
+        auto afterAlpha = NewBoolVec(cp_model, branchSize);
+        BVRor(cp_model, afterAlpha, allState[5][1], alpha);
+        auto dL = state_to_ull(afterAlpha, response, branchSize);
+        auto dR = state_to_ull(allState[5][2], response, branchSize);
 
+        auto nL = state_to_ull(allState[6][1], response, branchSize);
+        auto nR = state_to_ull(allState[6][2], response, branchSize);
+        const auto bct_prob = bct_entry(dL, dR, nL, nR, branchSize);
+        log_string["bct_prob"] = bct_prob;
         log_string["probabilities"] = probabilities;
     } else {
         log_string["status"] = "INFEASIBLE";
