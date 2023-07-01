@@ -108,6 +108,7 @@ std::vector<std::string> states_to_vector_hex_string(std::vector< std::array<Boo
 }
 
     std::vector<std::string> states_to_vector_hex_string(std::vector< BoolVec > allState, int branch_size, operations_research::sat::CpSolverResponse response);
+    unsigned long long int state_to_ull(BoolVec word, operations_research::sat::CpSolverResponse response, int branchSize);
 
 }
 
