@@ -150,3 +150,12 @@ std::vector<std::string> util::states_to_vector_hex_string(std::vector< BoolVec 
     return vector_hex_string;
 }
 
+
+unsigned long long int util::state_to_ull(BoolVec word, operations_research::sat::CpSolverResponse response, int branchSize) {
+    unsigned long long int dnlr;
+    for (int j = 0; j < branchSize; ++j) {
+        const unsigned int bit = SolutionIntegerValue(response, word[branchSize - 1 - j]);
+        dnlr = (dnlr << 1) + (bit&1);
+    }
+    return dnlr;
+}
