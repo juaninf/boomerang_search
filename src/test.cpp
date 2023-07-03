@@ -31,6 +31,8 @@ using std::cout;
 using std::endl;
 
 
+
+
 TEST_CASE( "Table 6", "Single_Key[speck32/64]") { // To run this specific test you can run bin/testrun -t "Table 6"
     const int preRound = 4;
     const int postRound = 4;
@@ -198,6 +200,101 @@ TEST_CASE( "Table 7 test", "[speck48/72]") {
     //REQUIRE ( strcmp(result["E2"]["outputDiff"].dump().c_str(), "\"000000001000000010100000001000001000010110100100\"") == 0);
 }
 
+TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck32/128", "Related_key[speck32/128]") {
+    const int preRound = 5;
+    const int postRound = 5;
+    const int mNum = 0;
+    const int halfNum = 20;
+    const int window_size = -1;
+    int key_size = 128;
+
+    std::vector<std::array<BoolVec, 3>> allState;
+    std::vector<BoolVec> intermediate;
+    std::vector<BoolVec> key_state_top;
+    std::vector<BoolVec> key_state_bottom;
+    std::vector <std::array<IntVar, 2>> probs;
+    CpModelBuilder cp_model;
+    create_model_related_key<32>(preRound, postRound, mNum, halfNum, window_size,  allState, key_state_top, key_state_bottom, intermediate,
+                                 probs, key_size, cp_model, true);
+    //BoolVec key_5_round = allState[5][0];
+    BoolVec left_5_round = allState[5][1];
+    BoolVec right_5_round = allState[5][2];
+    //std::vector<int> binary_key_5 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0};
+    std::vector<int> binary_left_5= {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_right_5 = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0};
+    //mapBoolVecToBinary(key_5_round, binary_key_5, cp_model);
+    //mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
+    mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);
+
+    //BoolVec key_6_round = allState[6][0];
+    BoolVec left_6_round = allState[6][1];
+    BoolVec right_6_round = allState[6][2];
+    //std::vector<int> binary_key_6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0};
+    std::vector<int> binary_left_6 = {0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0};
+    std::vector<int> binary_right_6 = {0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0};
+    //mapBoolVecToBinary(key_6_round, binary_key_6, cp_model);
+    mapBoolVecToBinary(left_6_round, binary_left_6, cp_model);
+    //mapBoolVecToBinary(right_6_round, binary_right_6, cp_model);
+
+    json result = search_related_key<32>(cp_model, preRound, postRound, 0, halfNum, window_size,  allState, intermediate, probs, key_state_top, key_state_bottom);
+    cout << result["key_state_top"].dump().c_str() << endl;
+    cout << result["bct_prob"].dump().c_str() << endl;
+    cout << result["key_state_bottom"].dump().c_str() << endl;
+    cout << result["states"].dump().c_str() << endl;
+    cout << result["probabilities"].dump().c_str() << endl;
+    cout << result["intermediates"].dump().c_str() << endl;
+
+    //REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"400044a95602\"") == 0);
+}
+
+
+TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck48/96", "Related_key[speck48/96]") {
+    const int preRound = 5;
+    const int postRound = 5;
+    const int mNum = 0;
+    const int halfNum = 8;
+    const int window_size = -1;
+    int key_size = 96;
+
+    std::vector<std::array<BoolVec, 3>> allState;
+    std::vector<BoolVec> intermediate;
+    std::vector<BoolVec> key_state_top;
+    std::vector<BoolVec> key_state_bottom;
+    std::vector <std::array<IntVar, 2>> probs;
+    CpModelBuilder cp_model;
+    create_model_related_key<24>(preRound, postRound, mNum, halfNum, window_size,  allState, key_state_top, key_state_bottom, intermediate,
+                                 probs, key_size, cp_model, true);
+    //BoolVec key_5_round = allState[5][0];
+    BoolVec left_5_round = allState[5][1];
+    BoolVec right_5_round = allState[5][2];
+    //std::vector<int> binary_key_5 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_left_5= {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0};
+    std::vector<int> binary_right_5 = {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0};
+    //mapBoolVecToBinary(key_5_round, binary_key_5, cp_model);
+    mapBoolVecToBinary(left_5_round, binary_left_5, cp_model);
+    //mapBoolVecToBinary(right_5_round, binary_right_5, cp_model);
+
+    //BoolVec key_6_round = allState[6][0];
+    BoolVec left_6_round = allState[6][1];
+    BoolVec right_6_round = allState[6][2];
+    //std::vector<int> binary_key_6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> binary_left_6 = {0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0};
+    std::vector<int> binary_right_6 = {0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0};
+    //mapBoolVecToBinary(key_6_round, binary_key_6, cp_model);
+    //mapBoolVecToBinary(left_6_round, binary_left_6, cp_model);
+    mapBoolVecToBinary(right_6_round, binary_right_6, cp_model);
+
+    json result = search_related_key<24>(cp_model, preRound, postRound, 0, halfNum, window_size,  allState, intermediate, probs, key_state_top, key_state_bottom);
+    cout << result["key_state_top"].dump().c_str() << endl;
+    cout << result["bct_prob"].dump().c_str() << endl;
+    cout << result["key_state_bottom"].dump().c_str() << endl;
+    cout << result["states"].dump().c_str() << endl;
+    cout << result["probabilities"].dump().c_str() << endl;
+    cout << result["intermediates"].dump().c_str() << endl;
+
+    //REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"400044a95602\"") == 0);
+}
+
 TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck32/64", "Related_key[speck32/64]") {
     const int preRound = 5;
     const int postRound = 5;
@@ -213,7 +310,7 @@ TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck32/64", "Rela
     std::vector <std::array<IntVar, 2>> probs;
     CpModelBuilder cp_model;
     create_model_related_key<16>(preRound, postRound, mNum, halfNum, window_size,  allState, key_state_top, key_state_bottom, intermediate,
-                                 probs, key_size, cp_model, false);
+                                 probs, key_size, cp_model, true);
 
     BoolVec key_state_top_0 = key_state_top[0];
     std::vector<int> binary_top_0 = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -418,6 +515,7 @@ TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck32/64", "Rela
     cout << result["key_state_bottom"].dump().c_str() << endl;
     cout << result["states"].dump().c_str() << endl;
     cout << result["probabilities"].dump().c_str() << endl;
+    cout << result["intermediate"].dump().c_str() << endl;
 
     //REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"400044a95602\"") == 0);
 }
