@@ -2840,7 +2840,13 @@ static void addSwitchInternalProcedure(CpModelBuilder &model, std::array<BoolVec
     int alpha = getAlpha<branchSize>();
     auto afterAlpha = NewBoolVec(model, branchSize);
     BVRor(model, afterAlpha, delta[1], alpha);
-    onlyLargeSwitch_BCT_enum<false, 16>(model, afterAlpha, delta[2], nabla[1], nabla[2], 24);
+    onlyLargeSwitch_BCT_enum<false, branchSize>(model, afterAlpha, delta[2], nabla[1], nabla[2], 24);
+    {
+        intermediate.push_back(afterAlpha);
+        intermediate.push_back(delta[2]);
+        intermediate.push_back(nabla[1]);
+        intermediate.push_back(nabla[2]);
+    }
 }
 
 template<int branchSize>
@@ -2897,7 +2903,7 @@ speck_boomerang2::create_model_related_key(const int preRound, const int postRou
 
     if (withMiddlePart) {
         //cout << "With Middle Part";
-        addSwitchInternalProcedure<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
+        addSwitchInternalProcedure<branchSize>(cp_model, allState[preRound], allState[preRound+1], 0, 24,
                                                intermediate);
         /*addSwitchKeySchedule<branchSize>(cp_model, allState[preRound], allState[preRound - 1], 0, 24,
                                          intermediate, key_state_top, key_state_bottom);*/
@@ -2910,6 +2916,7 @@ speck_boomerang2::create_model_related_key(const int preRound, const int postRou
     cp_model.AddBoolOr(outputBits);
     std::vector<std::array<IntVar, 2>> preRoundProbs(probs.begin(), probs.begin() + preRound);
     cp_model.Maximize(LinearExpr::Sum(flatten2DArray(probs)));
+    //cp_model.AddGreaterOrEqual(LinearExpr::Sum(flatten2DArray(allState[preRound])), 1);
 
     return cp_model;
 }
@@ -2985,17 +2992,16 @@ json speck_boomerang2::search_related_key(CpModelBuilder &cp_model, const int pr
         for (auto &prob : flatten2DArray(probs)) {
             probabilities.push_back((branchSize - 1) - SolutionIntegerValue(response, prob));
         }
-        // hardcoded for now
-        int alpha = getAlpha<branchSize>();
-        auto afterAlpha = NewBoolVec(cp_model, branchSize);
-        BVRor(cp_model, afterAlpha, allState[5][1], alpha);
-        auto dL = state_to_ull(afterAlpha, response, branchSize);
-        auto dR = state_to_ull(allState[5][2], response, branchSize);
+        if (intermediate.size() > 0) {
+            auto dL = state_to_ull(intermediate[0], response, branchSize);
+            auto dR = state_to_ull(intermediate[1], response, branchSize);
+            auto nL = state_to_ull(intermediate[2], response, branchSize);
+            auto nR = state_to_ull(intermediate[3], response, branchSize);
+            const auto bct_prob = bct_entry128(dL, dR, nL, nR, branchSize);
+            log_string["bct_prob"] = 2*branchSize - log2(bct_prob);
+        }
 
-        auto nL = state_to_ull(allState[6][1], response, branchSize);
-        auto nR = state_to_ull(allState[6][2], response, branchSize);
-        const auto bct_prob = bct_entry(dL, dR, nL, nR, branchSize);
-        log_string["bct_prob"] = bct_prob;
+        log_string["intermediates"] = states_to_vector_hex_string(intermediate, branchSize, response);
         log_string["probabilities"] = probabilities;
     } else {
         log_string["status"] = "INFEASIBLE";
@@ -3437,6 +3443,14 @@ speck_boomerang2::create_model_related_key<24>(const int preRound, const int pos
                                                std::vector <BoolVec> &intermediate,
                                                std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model, bool withMiddlePart);
 
+
+template
+CpModelBuilder
+speck_boomerang2::create_model_related_key<32>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                               std::vector <std::array<BoolVec, 3>> &allState,  std::vector<BoolVec> &key_state, std::vector<BoolVec> &key_state_bottom,
+                                               std::vector <BoolVec> &intermediate,
+                                               std::vector <std::array<IntVar, 2>> &probs, int key_size, CpModelBuilder &cp_model, bool withMiddlePart);
+
 template
 CpModelBuilder
 speck_boomerang2::create_model<24>(const int preRound, const int postRound, const int mNum, const int halfNum, int window_size, std::vector <std::array<BoolVec, 2>> &allState,
@@ -3488,5 +3502,10 @@ json speck_boomerang2::search_related_key<16>(CpModelBuilder &cp_model, const in
 
 template
 json speck_boomerang2::search_related_key<24>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
+                                              std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
+                                              std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom);
+
+template
+json speck_boomerang2::search_related_key<32>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                               std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
                                               std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom);
