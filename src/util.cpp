@@ -153,9 +153,11 @@ std::vector<std::string> util::states_to_vector_hex_string(std::vector< BoolVec 
 
 unsigned long long int util::state_to_ull(BoolVec word, operations_research::sat::CpSolverResponse response, int branchSize) {
     unsigned long long int dnlr;
+    std::string ubct_log = "0b";
     for (int j = 0; j < branchSize; ++j) {
         const unsigned int bit = SolutionIntegerValue(response, word[branchSize - 1 - j]);
         dnlr = (dnlr << 1) + (bit&1);
+        ubct_log = ubct_log + std::to_string(bit);
     }
-    return dnlr;
+    return dnlr & ((1 << branchSize) -1);
 }
