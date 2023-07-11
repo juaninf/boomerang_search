@@ -50,6 +50,9 @@ namespace speck_boomerang2 {
 
     template<int branchSize>
     int searchT(const int preRound, const int postRound, const int mNum, const int halfNum, const int first0, const int second0, int &window_size);
+
+    template<bool fixed, int branchSize>
+    void onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec &dR, BoolVec &nL, BoolVec &nR, const int halfNum);
 }
 
 

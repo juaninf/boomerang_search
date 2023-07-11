@@ -2643,7 +2643,7 @@ static void _addSwitchEBCT(CpModelBuilder &model, std::array<BoolVec, 2> &delta,
 
 
 template<bool fixed = false, int branchSize>
-static void onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec &dR, BoolVec &nL, BoolVec &nR, const int halfNum = 1)
+void speck_boomerang2::onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &dL, BoolVec &dR, BoolVec &nL, BoolVec &nR, const int halfNum)
 {
     const std::vector< std::vector<std::vector<int64_t>> > table{
             {{0, 0, 0, 0, 1, 0, 0, 0, 0},
@@ -3509,3 +3509,6 @@ template
 json speck_boomerang2::search_related_key<32>(CpModelBuilder &cp_model, const int preRound, const int postRound, const int mNum, const int halfNum, int window_size,
                                               std::vector< std::array<BoolVec, 3> > &allState, std::vector< BoolVec > &intermediate,
                                               std::vector <std::array<IntVar, 2>> &probs, std::vector<BoolVec> &key_state_top, std::vector<BoolVec> &key_state_bottom);
+
+template
+void speck_boomerang2::onlyLargeSwitch_BCT_enum<false, 16>(CpModelBuilder &model, BoolVec &dL, BoolVec &dR, BoolVec &nL, BoolVec &nR, const int halfNum);

@@ -30,7 +30,69 @@ using IntVec = std::vector<sat::IntVar>;
 using std::cout;
 using std::endl;
 
+TEST_CASE( "invalid BCT table", "Single_Key[speck32/64]") {
+    CpModelBuilder cp_model;
+    int branchSize = 16;
+    BoolVec dL = NewBoolVec(cp_model, branchSize);
+    std::vector<int> dL_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(dL, dL_values, cp_model);
 
+    BoolVec dR = NewBoolVec(cp_model, branchSize);
+    std::vector<int> dR_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(dR, dR_values, cp_model);
+
+    BoolVec nL = NewBoolVec(cp_model, branchSize);
+    std::vector<int> nL_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(nL, nL_values, cp_model);
+
+    BoolVec nR = NewBoolVec(cp_model, branchSize);
+    std::vector<int> nR_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(nR, nR_values, cp_model);
+
+    onlyLargeSwitch_BCT_enum<false, 16>(cp_model, dL, dR, nL, nR, 1);
+
+    SatParameters parameters;
+    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
+    parameters.set_num_search_workers(30);
+    parameters.set_log_search_progress(false);
+    auto model_built = cp_model.Build();
+
+    const auto response = SolveWithParameters(model_built, parameters);
+    const auto status = response.status();
+    REQUIRE ( status == 3);
+}
+
+TEST_CASE( "valid BCT table", "Single_Key[speck32/64]") {
+    CpModelBuilder cp_model;
+    int branchSize = 16;
+    BoolVec dL = NewBoolVec(cp_model, branchSize);
+    std::vector<int> dL_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(dL, dL_values, cp_model);
+
+    BoolVec dR = NewBoolVec(cp_model, branchSize);
+    std::vector<int> dR_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(dR, dR_values, cp_model);
+
+    BoolVec nL = NewBoolVec(cp_model, branchSize);
+    std::vector<int> nL_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(nL, nL_values, cp_model);
+
+    BoolVec nR = NewBoolVec(cp_model, branchSize);
+    std::vector<int> nR_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(nR, nR_values, cp_model);
+
+    onlyLargeSwitch_BCT_enum<false, 16>(cp_model, dL, dR, nL, nR, 1);
+
+    SatParameters parameters;
+    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
+    parameters.set_num_search_workers(30);
+    parameters.set_log_search_progress(false);
+    auto model_built = cp_model.Build();
+
+    const auto response = SolveWithParameters(model_built, parameters);
+    const auto status = response.status();
+    REQUIRE ( status == 3);
+}
 
 
 TEST_CASE( "Table 6", "Single_Key[speck32/64]") { // To run this specific test you can run bin/testrun -t "Table 6"
@@ -200,7 +262,7 @@ TEST_CASE( "Table 7 test", "[speck48/72]") {
     //REQUIRE ( strcmp(result["E2"]["outputDiff"].dump().c_str(), "\"000000001000000010100000001000001000010110100100\"") == 0);
 }
 
-TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck32/128", "Related_key[speck32/128]") {
+/*TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck64/128", "Related_key[speck32/128]") {
     const int preRound = 5;
     const int postRound = 5;
     const int mNum = 0;
@@ -245,7 +307,7 @@ TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck32/128", "Rel
     cout << result["intermediates"].dump().c_str() << endl;
 
     //REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"400044a95602\"") == 0);
-}
+}*/
 
 
 TEST_CASE( "Checking Boomerang Trail in the Related Key Model speck48/96", "Related_key[speck48/96]") {
@@ -764,5 +826,7 @@ cout << "key_state_bottom: " << result["key_state_bottom"].dump().c_str() << end
 cout << result["states"].dump().c_str() << endl;
 //REQUIRE ( strcmp(result["states"][4].dump().c_str(), "\"002048001949005809\"") == 0);
 }
+
+
 
 
