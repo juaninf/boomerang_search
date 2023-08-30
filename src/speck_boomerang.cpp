@@ -2727,8 +2727,10 @@ void speck_boomerang2::onlyLargeSwitch_BCT_enum(CpModelBuilder &model, BoolVec &
         model.AddLessOrEqual(halfSum, model.NewConstant(halfNum));
         model.AddEquality(LinearExpr::Sum(isHalf), halfSum);
         model.AddDecisionStrategy({ halfSum }, DecisionStrategyProto::CHOOSE_FIRST, DecisionStrategyProto::SELECT_MIN_VALUE);
-    } else
+    } else {
+        cout << "Inside the else" << endl;
         model.AddLessOrEqual(LinearExpr::Sum(isHalf), model.NewConstant(halfNum));
+    }
 
     model.AddEquality(dp[0][0], model.TrueVar());
     model.AddEquality(dp[0][1], model.FalseVar());

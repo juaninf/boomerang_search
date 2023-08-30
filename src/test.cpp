@@ -30,6 +30,7 @@ using IntVec = std::vector<sat::IntVar>;
 using std::cout;
 using std::endl;
 
+
 TEST_CASE( "invalid BCT table", "Single_Key[speck32/64]") {
     CpModelBuilder cp_model;
     int branchSize = 16;
@@ -66,32 +67,65 @@ TEST_CASE( "valid BCT table", "Single_Key[speck32/64]") {
     CpModelBuilder cp_model;
     int branchSize = 16;
     BoolVec dL = NewBoolVec(cp_model, branchSize);
-    std::vector<int> dL_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> dL_values= {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0};
     mapBoolVecToBinary(dL, dL_values, cp_model);
 
     BoolVec dR = NewBoolVec(cp_model, branchSize);
-    std::vector<int> dR_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> dR_values= {1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     mapBoolVecToBinary(dR, dR_values, cp_model);
 
     BoolVec nL = NewBoolVec(cp_model, branchSize);
-    std::vector<int> nL_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> nL_values= {1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0};
     mapBoolVecToBinary(nL, nL_values, cp_model);
 
     BoolVec nR = NewBoolVec(cp_model, branchSize);
-    std::vector<int> nR_values= {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> nR_values= {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     mapBoolVecToBinary(nR, nR_values, cp_model);
 
     onlyLargeSwitch_BCT_enum<false, 16>(cp_model, dL, dR, nL, nR, 1);
 
     SatParameters parameters;
     //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
-    parameters.set_num_search_workers(30);
+    parameters.set_num_search_workers(1);
     parameters.set_log_search_progress(false);
     auto model_built = cp_model.Build();
 
     const auto response = SolveWithParameters(model_built, parameters);
     const auto status = response.status();
-    REQUIRE ( status == 3);
+    REQUIRE ( status == CpSolverStatus::OPTIMAL);
+}
+
+
+TEST_CASE( "valid BCT table Single_Key speck48_96", "Single_Key[speck48/96]") {
+    CpModelBuilder cp_model;
+    int branchSize = 24;
+    BoolVec dL = NewBoolVec(cp_model, branchSize);
+    std::vector<int> dL_values= {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(dL, dL_values, cp_model);
+
+    BoolVec dR = NewBoolVec(cp_model, branchSize);
+    std::vector<int> dR_values= {1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(dR, dR_values, cp_model);
+
+    BoolVec nL = NewBoolVec(cp_model, branchSize);
+    std::vector<int> nL_values= {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(nL, nL_values, cp_model);
+
+    BoolVec nR = NewBoolVec(cp_model, branchSize);
+    std::vector<int> nR_values= {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    mapBoolVecToBinary(nR, nR_values, cp_model);
+
+    onlyLargeSwitch_BCT_enum<false, 24>(cp_model, dL, dR, nL, nR, 1);
+
+    SatParameters parameters;
+    //parameters.set_search_branching(SatParameters::FIXED_SEARCH);
+    parameters.set_num_search_workers(1);
+    parameters.set_log_search_progress(false);
+    auto model_built = cp_model.Build();
+
+    const auto response = SolveWithParameters(model_built, parameters);
+    const auto status = response.status();
+    REQUIRE ( status == CpSolverStatus::OPTIMAL);
 }
 
 
